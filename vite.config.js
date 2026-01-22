@@ -7,7 +7,7 @@ import path from "node:path";
 
 export default defineConfig(({ mode }) => ({
     root: "sources",
-    base: "/Task-Checklist/",
+    base: "/Warframe-Task-Checklist/",
 
     plugins: [
         createHtmlPlugin({
