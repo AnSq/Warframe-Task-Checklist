@@ -282,6 +282,10 @@ body:not(.light-mode) #sun-icon { display: none; }
 }
 
 
+.current-cycle svg {
+    width: 1.125rem;
+    height: 1.125rem;
+}
 .info-line svg {
     width: 0.9375rem;
     height: 0.9375rem;
