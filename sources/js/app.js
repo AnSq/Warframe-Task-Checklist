@@ -11,10 +11,10 @@ const dailyBackgroundImageIds = [
     'bg-image-2'
     // Add more IDs if you add more background image divs in HTML
 ];
-const APP_VERSION = "3.1";
+const APP_VERSION = "4.0";
 const GIT_COMMIT_HASH_LONG = import.meta.env.VITE_GIT_COMMIT_HASH;
 const GIT_COMMIT_HASH = GIT_COMMIT_HASH_LONG.slice(0,7);
-const WARFRAME_VERSION = "41.0.0";
+const WARFRAME_VERSION = "41.0.7";
 const THEME_STORAGE_KEY = 'warframeChecklistTheme';
 
 function getStorageKey(appVersion) {
@@ -27,14 +27,17 @@ function getStorageKey(appVersion) {
 }
 const DATA_STORAGE_KEY = getStorageKey(APP_VERSION);
 
+const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
+
 const baroKiTeerData = {
     referenceArrivalUTC: new Date(Date.UTC(2025, 4, 30, 13, 0, 0)).getTime(),
-    cycleMilliseconds: 14 * 24 * 60 * 60 * 1000,
-    durationMilliseconds: 48 * 60 * 60 * 1000,
+    cycleMilliseconds: 14 * MILLISECONDS_PER_DAY,
+    durationMilliseconds: 2 * MILLISECONDS_PER_DAY,
 };
 
 // --- Task Data ---
 import tasks from "./tasks.json" with {type: "json"};
+import cycles from "./cycles.json" with {type: "json"};
 
 const taskIcons = import.meta.glob("../img/icons/**/*.png", {eager: true, query: '?url', import: 'default'});
 function iconURL(iconName) {
@@ -74,6 +77,10 @@ let saveStatusTimeout;
 let countdownInterval;
 
 // --- Function Definitions ---
+
+function modulo(n, d) {
+    return ((n % d) + d) % d;
+}
 
 function initializeDOMElements() {
     bodyElement = document.body;
@@ -548,6 +555,7 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
         listItem.classList.add('hidden-task');
     }
 
+    // Checkbox
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
     checkbox.id = task.id;
@@ -557,17 +565,21 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
         checkbox.dataset.parentId = task.parentId;
     }
 
+    // Task Icon
     const icon = document.createElement('img');
     if (task.icon) {
-        icon.src = iconURL(task.icon);
+        icon.src = iconURL(`tasks/${task.icon}`);
+        icon.classList.add("task-icon");
         if (!task.noIconFilter) {
             icon.classList.add('icon-filter')
         }
     }
 
+    // Hide/Notif Controls
     const controlsContainer = document.createElement('div');
     controlsContainer.classList.add('flex', 'items-center', 'ml-auto');
 
+    // Notif Button
     if (task.id.startsWith('other_')) {
         const notificationButton = document.createElement('button');
         notificationButton.classList.add('notification-toggle-btn');
@@ -590,6 +602,7 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
         controlsContainer.appendChild(notificationButton);
     }
 
+    // Hide Button
     const hideButton = document.createElement('button');
     hideButton.classList.add('hide-task-btn');
     hideButton.setAttribute('aria-label', `Hide task: ${task.text.split(':')[0]}`);
@@ -615,11 +628,13 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
         parentHeaderDiv.appendChild(checkbox);
         if (task.icon) { parentHeaderDiv.appendChild(icon); }
 
+        // Task Text
         const taskTextSpan = document.createElement('span');
         taskTextSpan.textContent = task.text;
         taskTextSpan.classList.add('task-text', 'ml-2', 'flex-grow', 'cursor-pointer');
         if (isChecked) taskTextSpan.classList.add('checked');
 
+        // Collapse Button
         const collapseIcon = document.createElement("div");
         collapseIcon.setAttribute('class', 'collapse-icon');
         collapseIcon.innerHTML = svgIcons.collapseIcon;
@@ -629,6 +644,7 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
         parentHeaderDiv.appendChild(collapseIcon);
         listItem.appendChild(parentHeaderDiv);
 
+        // Subtasks
         const subtaskList = document.createElement('ul');
         subtaskList.id = `${task.id}-subtasks`;
         subtaskList.classList.add('list-none', 'pl-0', 'mt-1', 'subtask-list');
@@ -642,6 +658,7 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
         }
         listItem.appendChild(subtaskList);
 
+        // On Click -> Collapse/Expand
         parentHeaderDiv.addEventListener('click', (e) => {
             if (e.target !== checkbox && !checkbox.contains(e.target) && !controlsContainer.contains(e.target) && !collapseIcon.contains(e.target) ) {
                 const isExpanded = parentHeaderDiv.getAttribute('aria-expanded') === 'true';
@@ -656,6 +673,7 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
             subtaskList.classList.toggle('collapsed', isExpanded);
         });
 
+        // Checkbox Changed -> Change Subtasks Checkboxes
         checkbox.addEventListener('change', (event) => {
             const currentlyChecked = event.target.checked;
             checklistData.progress[task.id] = currentlyChecked;
@@ -678,25 +696,84 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
 
         const label = document.createElement('label');
         label.htmlFor = task.id;
+
+        // Task Text
         label.innerHTML = `<div class="task-text">${task.text}</div>`;
 
-        if (["location", "npc", "terminal", "prereq", "info"].some((prop) => task[prop])) {
-            if (task.npc && task.terminal) {console.warn(`Tasks should specify only one of [npc, terminal]. (${task.id})`);}
-            const infoLine = document.createElement('div');
-            infoLine.classList.add('info-line');
-            let infoLineHTML = "";
-            infoLineHTML += makeInfoLineItem(task, "location", "Location", svgIcons.locationIcon);
-            infoLineHTML = infoLineHTML.replace('Base of Operations', '<span class="tooltip" title="Orbiter, Drifter\'s Camp, or Backroom">$&</span>');
-            infoLineHTML += makeInfoLineItem(task, "npc", "NPC", svgIcons.npcIcon);
-            infoLineHTML += makeInfoLineItem(task, "terminal", "Terminal", svgIcons.terminalIcon);
-            infoLineHTML += makeInfoLineItem(task, "prereq", "Requirements", svgIcons.prereqIcon);
-            infoLineHTML += makeInfoLineItem(task, "info", "Info", svgIcons.infoIcon);
-            infoLine.innerHTML = infoLineHTML;
+        const hasCycle = Object.hasOwn(cycles, task.id);
+        const hasInfoLine = ["location", "npc", "terminal", "prereq", "info"].some((prop) => task[prop]);
 
-            const infoLineExpander = document.createElement("div");
-            infoLineExpander.classList.add("info-line-expander");
-            infoLineExpander.appendChild(infoLine);
-            label.appendChild(infoLineExpander);
+        if (hasCycle || hasInfoLine) {
+            const taskInfoExpander = document.createElement("div");
+            taskInfoExpander.classList.add("task-info-expander");
+            const taskInfoExpanderContent = document.createElement("div");
+
+            // Cycle
+            if (hasCycle) {
+                const currentCycle = document.createElement("div");
+                currentCycle.classList.add("current-cycle");
+
+                currentCycle.innerHTML += svgIcons.cycleIcon;
+
+                const now = new Date();
+                const ref = new Date(cycles[task.id].ref);
+                const cycleCount = cycles[task.id].order.length;
+
+                let prefix, period, cycleNumber;
+                if (task.id.startsWith("weekly_")) {
+                    prefix = "This Week";
+                    period = 7 * MILLISECONDS_PER_DAY;
+                    if (ref.getUTCDay() !== 1) {
+                        console.warn(`${task.id} cycle ref ${cycles[task.id].ref} is not a Monday`);
+                    }
+                }
+                else if (task.id.startsWith("daily_")) {
+                    prefix = "Today";
+                    period = MILLISECONDS_PER_DAY;
+                }
+                else {
+                    prefix = "Current Cycle";
+                    console.error(`cycles are not implemented for this task (${task.id})`);
+                }
+                cycleNumber = modulo(Math.floor((now.getTime() - ref.getTime()) / period), cycleCount);
+                console.log(`${task.id} cycleNumber ${cycleNumber}`);
+                const cycleData = cycles[task.id].order[cycleNumber];
+
+                currentCycle.appendChild(document.createTextNode(`${prefix}: `))
+
+                if (cycleData.icon) {
+                    const cycleIcon = document.createElement("img");
+                    cycleIcon.src = iconURL(`cycles/${cycleData.icon}`);
+                    cycleIcon.classList.add("cycle-icon");
+                    if (cycleData.iconFilter) {
+                        cycleIcon.classList.add("icon-filter");
+                    }
+                    currentCycle.appendChild(cycleIcon);
+                }
+
+                currentCycle.appendChild(document.createTextNode(cycleData.text));
+                taskInfoExpanderContent.appendChild(currentCycle);
+            }
+
+            // Info Line
+            if (hasInfoLine) {
+                if (task.npc && task.terminal) {console.warn(`Tasks should specify only one of [npc, terminal]. (${task.id})`);}
+                const infoLine = document.createElement('div');
+                infoLine.classList.add('info-line');
+                let infoLineHTML = "";
+                infoLineHTML += makeInfoLineItem(task, "location", "Location", svgIcons.locationIcon);
+                infoLineHTML = infoLineHTML.replace('Base of Operations', '<span class="tooltip" title="Orbiter, Drifter\'s Camp, or Backroom">$&</span>');
+                infoLineHTML += makeInfoLineItem(task, "npc", "NPC", svgIcons.npcIcon);
+                infoLineHTML += makeInfoLineItem(task, "terminal", "Terminal", svgIcons.terminalIcon);
+                infoLineHTML += makeInfoLineItem(task, "prereq", "Requirements", svgIcons.prereqIcon);
+                infoLineHTML += makeInfoLineItem(task, "info", "Info", svgIcons.infoIcon);
+                infoLine.innerHTML = infoLineHTML;
+
+                taskInfoExpanderContent.appendChild(infoLine);
+            }
+
+            taskInfoExpander.appendChild(taskInfoExpanderContent);
+            label.appendChild(taskInfoExpander);
         }
 
         label.classList.add('ml-2', 'flex-1', 'cursor-pointer');
