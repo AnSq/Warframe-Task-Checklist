@@ -45,10 +45,11 @@ function iconURL(iconName) {
 }
 
 // --- DOM Elements (defined after DOMContentLoaded) ---
-let bodyElement, contentElement, themeToggleButton, hamburgerButton, slideoutMenuOverlay, menuContentBox, menuCloseButton,
+let bodyElement, contentElement, themeToggleButton, hamburgerButton, slideoutMenuOverlay, menuContentBox, optionsCloseButton,
     dailyList, weeklyList, otherList, resetDailyButton, resetWeeklyButton, resetButton, unhideTasksButton,
     lastSavedTimestampElement, saveStatusElement, sectionToggles, dailyResetTimeElement, weeklyResetTimeElement,
-    errorDisplayElement, errorMessageElement, errorCloseButton, errorCopyButton, appVersionElement, gitHashElement, wfVersionElement,
+    errorDisplayElement, errorMessageElement, errorCloseButton, errorCopyButton, appVersionElement, gitHashElement,
+    wfVersionElement, scheduleDialog,
     backgroundDivs = [];
 
 
@@ -89,7 +90,7 @@ function initializeDOMElements() {
     hamburgerButton = document.getElementById('hamburger-button');
     slideoutMenuOverlay = document.getElementById('slideout-menu-overlay');
     menuContentBox = document.getElementById('menu-content-box');
-    menuCloseButton = document.getElementById('menu-close-button');
+    optionsCloseButton = document.querySelector('#menu-content-box .menu-close-button');
     dailyList = document.querySelector('#daily-tasks-content ul');
     weeklyList = document.querySelector('#weekly-tasks-content ul');
     otherList = document.querySelector('#other-tasks-content ul');
@@ -109,6 +110,7 @@ function initializeDOMElements() {
     appVersionElement = document.querySelector('.version-text');
     gitHashElement = document.querySelector('.git-hash-text');
     wfVersionElement = document.querySelector('.warframe-version-text');
+    scheduleDialog = document.getElementById("cycle-schedule");
 
     backgroundDivs = [];
     dailyBackgroundImageIds.forEach(id => {
@@ -130,10 +132,10 @@ function displayError(message) {
 }
 
 function hideError() {
-     if (!errorDisplayElement) return;
-     errorDisplayElement.classList.remove('visible');
-     errorMessageElement.textContent = '';
-     if (errorCopyButton) errorCopyButton.textContent = 'Copy';
+    if (!errorDisplayElement) return;
+    errorDisplayElement.classList.remove('visible');
+    errorMessageElement.textContent = '';
+    if (errorCopyButton) errorCopyButton.textContent = 'Copy';
 }
 
 function copyErrorToClipboard() {
@@ -150,8 +152,8 @@ function copyErrorToClipboard() {
         setTimeout(() => { if (errorCopyButton) errorCopyButton.textContent = 'Copy'; }, 2000);
     }).catch(err => {
         console.error('Failed to copy error message: ', err);
-         if (errorCopyButton) errorCopyButton.textContent = 'Failed';
-         setTimeout(() => { if (errorCopyButton) errorCopyButton.textContent = 'Copy'; }, 2000);
+        if (errorCopyButton) errorCopyButton.textContent = 'Failed';
+        setTimeout(() => { if (errorCopyButton) errorCopyButton.textContent = 'Copy'; }, 2000);
     });
 }
 
@@ -212,7 +214,7 @@ function updateLastSavedDisplay(timestamp) {
     if (lastSavedTimestampElement) {
         lastSavedTimestampElement.textContent = `Last saved: ${formatTimestamp(timestamp)}`;
     } else {
-         console.error("lastSavedTimestampElement not found");
+        console.error("lastSavedTimestampElement not found");
     }
 }
 
@@ -305,7 +307,7 @@ function calculateBaroTimings() {
         nextArrival += baroKiTeerData.cycleMilliseconds;
     }
     if (now >= nextArrival + baroKiTeerData.durationMilliseconds) {
-         nextArrival += baroKiTeerData.cycleMilliseconds;
+        nextArrival += baroKiTeerData.cycleMilliseconds;
     }
 
     const departure = nextArrival + baroKiTeerData.durationMilliseconds;
@@ -343,9 +345,9 @@ function displayBaroCountdown() {
             saveData(false);
         }
         if (diff > 0 && diff < 60 * 60 * 1000 && checklistData.notificationPreferences['other_baro'] && !checklistData.notificationsSent[departureNotificationId]) {
-             showNotification("Baro Ki'Teer Departing Soon!", `Leaves in approximately ${Math.round(diff / (60 * 1000))} minutes.`);
-             checklistData.notificationsSent[departureNotificationId] = true;
-             saveData(false);
+            showNotification("Baro Ki'Teer Departing Soon!", `Leaves in approximately ${Math.round(diff / (60 * 1000))} minutes.`);
+            checklistData.notificationsSent[departureNotificationId] = true;
+            saveData(false);
         }
 
     } else {
@@ -721,7 +723,7 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
 
                 let prefix, period, cycleNumber;
                 if (task.id.startsWith("weekly_")) {
-                    prefix = "This Week";
+                    prefix = "This&nbsp;Week";
                     period = 7 * MILLISECONDS_PER_DAY;
                     if (ref.getUTCDay() !== 1) {
                         console.warn(`${task.id} cycle ref ${cycles[task.id].ref} is not a Monday`);
@@ -732,26 +734,30 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
                     period = MILLISECONDS_PER_DAY;
                 }
                 else {
-                    prefix = "Current Cycle";
+                    prefix = "Current&nbsp;Cycle";
                     console.error(`cycles are not implemented for this task (${task.id})`);
                 }
                 cycleNumber = modulo(Math.floor((now.getTime() - ref.getTime()) / period), cycleCount);
                 console.log(`${task.id} cycleNumber ${cycleNumber}`);
                 const cycleData = cycles[task.id].order[cycleNumber];
 
-                currentCycle.appendChild(document.createTextNode(`${prefix}: `))
+                const cyclePrefix = document.createElement("span");
+                cyclePrefix.innerHTML = `${prefix}: `;
+                currentCycle.appendChild(cyclePrefix);
 
-                if (cycleData.icon) {
-                    const cycleIcon = document.createElement("img");
-                    cycleIcon.src = iconURL(`cycles/${cycleData.icon}`);
-                    cycleIcon.classList.add("cycle-icon");
-                    if (cycleData.iconFilter) {
-                        cycleIcon.classList.add("icon-filter");
-                    }
-                    currentCycle.appendChild(cycleIcon);
-                }
+                currentCycle.innerHTML += makeCycleIcon(cycleData);
 
-                currentCycle.appendChild(document.createTextNode(cycleData.text));
+                const cycleText = document.createElement("span");
+                cycleText.textContent = cycleData.text;
+                currentCycle.appendChild(cycleText);
+
+                const showSchedule = document.createElement("button");
+                showSchedule.type = "button";
+                showSchedule.classList.add("show-schedule-btn");
+                showSchedule.innerHTML = "Show&nbsp;Schedule";
+                showSchedule.addEventListener("click", showScheduleAction(task, period, cycleNumber));
+                currentCycle.appendChild(showSchedule);
+
                 taskInfoExpanderContent.appendChild(currentCycle);
             }
 
@@ -810,6 +816,57 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
         });
     }
     return listItem;
+}
+
+function makeCycleIcon(cycleData) {
+    if (cycleData.icon) {
+        const src = iconURL(`cycles/${cycleData.icon}`)
+        let classList = "cycle-icon";
+        if (cycleData.iconFilter) {
+            classList += " icon-filter";
+        }
+        return `<img class="${classList}" src="${src}">`;
+    } else {
+        return "";
+    }
+}
+
+function showScheduleAction(task, period, cycleNumber) {
+    const cycleCount = cycles[task.id].order.length;
+
+    return () => {
+        document.getElementById("schedule-title").innerText = task.text.split(":")[0]; // take the task text up to the first ":" as the dialog title
+
+        const tbody = scheduleDialog.querySelector(":scope tbody");
+        tbody.innerHTML = "";
+
+        const now = new Date();
+        const ref = new Date(cycles[task.id].ref);
+        const cyclesSinceRef = Math.floor((now.getTime() - ref.getTime()) / period);
+        const currentCycleStartTime = ref.getTime() + (period * cyclesSinceRef);
+
+        for (let i = 0; i <= cycleCount; i++) {
+            let date = "Now";
+            if (i !== 0) {
+                const rowCycleStartDate = new Date(currentCycleStartTime + (period * i));
+                date = rowCycleStartDate.toISOString().split("T")[0]; // toISOString is always in UTC, which is what we want. The part before "T" is the date
+            }
+
+            let repeat = "";
+            if (i === cycleCount) {
+                repeat = '<tr><td colspan="2" class="cycle-repeats">(Cycle Repeats)</td></tr>';
+            }
+
+            const rowData = cycles[task.id].order[modulo(cycleNumber + i, cycleCount)];
+
+            tbody.innerHTML +=
+                `${repeat}<tr>
+                    <td>${date}</td>
+                    <td>${makeCycleIcon(rowData)}${rowData.text}</td>
+                </tr>`;
+        }
+        scheduleDialog.showModal();
+    }
 }
 
 function makeInfoLineItem(task, prop, iconToolTip, icon) {
@@ -1103,10 +1160,9 @@ function loadAndInitializeApp() {
         });
     } else { console.error("Slideout menu overlay not found!"); }
 
-    if (menuCloseButton) {
-        menuCloseButton.addEventListener('click', toggleMenu);
-    } else { console.error("Menu close button not found!"); }
-
+    if (optionsCloseButton) {
+        optionsCloseButton.addEventListener('click', toggleMenu);
+    } else { console.error("Options close button not found!"); }
 
     sectionToggles.forEach(toggle => {
         toggle.addEventListener('click', handleSectionToggle);
@@ -1136,6 +1192,23 @@ function loadAndInitializeApp() {
     if (errorCopyButton) {
         errorCopyButton.addEventListener('click', copyErrorToClipboard);
     } else { console.error("Error copy button not found!"); }
+
+    if (scheduleDialog) {
+        // clicking inside the dialog's top-level div does nothing
+        scheduleDialog.querySelector(":scope > div").addEventListener("click", (e) => {
+            e.stopPropagation();
+        });
+
+        // clicking the close button...
+        scheduleDialog.querySelector(":scope .menu-close-button").addEventListener("click", () => {
+            scheduleDialog.close();
+        });
+
+        // clicking anywhere else on the dialog (i.e., the anywhere else the page (the ::backdrop)) will close it
+        scheduleDialog.addEventListener("click", () => {
+            scheduleDialog.close();
+        });
+    } else { console.error("Schedule dialog not found!"); }
 
     console.log(`Warframe Checklist App Initialized (v${APP_VERSION} (${GIT_COMMIT_HASH})) from app.js.`);
 }

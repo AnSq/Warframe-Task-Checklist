@@ -41,9 +41,9 @@
     --border-color: #4b5563;
     --checkbox-border: #6b7280;
     --checkbox-bg: rgba(255, 255, 255, 0.1);
-    --checkbox-checked-bg: #d6b06e;
+    --checkbox-checked-bg: var(--text-header);
     --checkbox-checked-border: #6b7280;
-    --link-color: #d6b06e;
+    --link-color: var(--text-header);
     --link-hover-color: #fff;
     --theme-toggle-border: #4b5563;
     --theme-toggle-hover-bg: rgba(255, 255, 255, 0.1);
@@ -60,7 +60,7 @@
     --error-button-hover-bg: rgba(255, 255, 255, 0.2);
     --menu-panel-bg: #272e3a;
     --menu-panel-border: #374151;
-    --menu-title-color: #ffffff;
+    --menu-title-color: var(--text-primary);
     --menu-close-btn-color: #9ca3af;
     --menu-close-btn-hover-color: #f3f4f6;
     --hide-section-btn-bg: var(--text-muted);
@@ -69,6 +69,7 @@
     --baro-timer-color: var(--text-secondary);
     --notification-btn-color: var(--text-muted);
     --notification-btn-active-color: #4ade80;
+    --backdrop-filter: blur(1px);
 }
 
 body.light-mode {
@@ -76,13 +77,13 @@ body.light-mode {
     --text-primary: #1f2937;
     --text-secondary: #4b5563;
     --text-muted: #6b7280;
-    --text-header: #d6b06e;
+    --text-header: #795d2d;
     --text-label: #374151;
     --text-label-checked: #6b7280;
     --border-color: #e5e7eb;
     --checkbox-border: #cbd5e1;
     --checkbox-bg: rgba(0, 0, 0, 0.02);
-    --link-color: #d6b06e;
+    --link-color: var(--text-header);
     --link-hover-color: #1f2937;
     --theme-toggle-border: #d1d5db;
     --theme-toggle-hover-bg: rgba(0, 0, 0, 0.05);
@@ -96,7 +97,7 @@ body.light-mode {
     --error-button-hover-bg: rgba(0, 0, 0, 0.1);
     --menu-panel-bg: #f9fafb;
     --menu-panel-border: #e5e7eb;
-    --menu-title-color: #111827;
+    --menu-title-color: var(--text-primary);
     --menu-close-btn-color: #6b7280;
     --menu-close-btn-hover-color: #1f2937;
     --hide-section-btn-bg: var(--text-muted);
@@ -119,6 +120,7 @@ body {
     color: var(--text-primary);
     transition: background-color 0.3s ease, color 0.3s ease;
     position: relative;
+    --backdrop-color: hsl(from var(--bg-content) h s calc(l / 1.5) / 60%);
 }
 body::before {
     content: "";
@@ -208,10 +210,18 @@ body.light-mode #moon-icon { display: none; }
 body:not(.light-mode) #sun-icon { display: none; }
 
 /* --- Hamburger Menu Overlay Basics --- */
+.popover {
+    background-color: var(--menu-panel-bg);
+    border: 1px solid var(--menu-panel-border);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+}
 #slideout-menu-overlay {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    background-color: rgba(0,0,0,0.75);
+    background-color: var(--backdrop-color);
+    backdrop-filter: var(--backdrop-filter);
     z-index: 999;
     display: none;
     align-items: center;
@@ -224,11 +234,6 @@ body:not(.light-mode) #sun-icon { display: none; }
     opacity: 1;
 }
 #menu-content-box {
-    background-color: var(--menu-panel-bg);
-    border: 1px solid var(--menu-panel-border);
-    box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-    padding: 1.5rem;
-    border-radius: 0.5rem;
     width: 90%;
     max-width: 300px;
     transform: scale(0.95);
@@ -242,6 +247,7 @@ body:not(.light-mode) #sun-icon { display: none; }
 .menu-header {
     display: flex;
     justify-content: space-between;
+    column-gap: 2rem;
     align-items: center;
     margin-bottom: 1rem;
     padding-bottom: 0.75rem;
@@ -252,7 +258,7 @@ body:not(.light-mode) #sun-icon { display: none; }
     font-weight: 600;
     color: var(--menu-title-color);
 }
-#menu-close-button {
+.menu-close-button {
     background: none;
     border: none;
     font-size: 1.75rem;
@@ -260,6 +266,7 @@ body:not(.light-mode) #sun-icon { display: none; }
     color: var(--menu-close-btn-color);
     cursor: pointer;
     opacity: 0.7;
+    align-self: flex-start;
 }
 
 /* Error Display Basic Structure */
@@ -282,9 +289,14 @@ body:not(.light-mode) #sun-icon { display: none; }
 }
 
 
+.task-info-expander {
+    --current-cycle-svg-size: 1.125rem;
+    --task-info-expander-svg-mr: 0.2em;
+}
+
 .current-cycle svg {
-    width: 1.125rem;
-    height: 1.125rem;
+    width: var(--current-cycle-svg-size);
+    height: var(--current-cycle-svg-size);
 }
 .info-line svg {
     width: 0.9375rem;
