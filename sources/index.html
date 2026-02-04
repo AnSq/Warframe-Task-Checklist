@@ -48,7 +48,7 @@
                 <p class="app-description text-base">Track your daily, weekly, and other Warframe tasks.</p>
             </div>
             <div class="flex items-center space-x-2 mt-2 sm:mt-0">
-                 <button id="theme-toggle-button" aria-label="Toggle theme">
+                    <button id="theme-toggle-button" aria-label="Toggle theme">
                         <svg id="sun-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
                             <path d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.166a.75.75 0 00-1.06-1.06l-1.591 1.59a.75.75 0 101.06 1.061l1.591-1.59zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5h2.25a.75.75 0 01.75.75zM17.834 18.894a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 10-1.061 1.06l1.59 1.591zM12 18a.75.75 0 01.75.75V21a.75.75 0 01-1.5 0v-2.25A.75.75 0 0112 18zM7.758 17.303a.75.75 0 00-1.061-1.06l-1.591 1.59a.75.75 0 001.06 1.061l1.591-1.59zM6 12a.75.75 0 01-.75.75H3a.75.75 0 010-1.5h2.25A.75.75 0 016 12zM6.166 7.758a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 00-1.061 1.06l1.59 1.591z"/>
                         </svg>
@@ -81,7 +81,7 @@
                 <h2 class="text-xl font-semibold mb-1 border-b pb-2 text-teal-700 section-toggle" aria-expanded="true" aria-controls="weekly-tasks-content">
                     <span class="flex-grow">Weekly Tasks <span class="reset-time-local" id="weekly-reset-local-time">(Resets ...)</span></span>
                     <button class="hide-section-button" data-section-id="weekly-tasks-section">Hide Section</button>
-                     <svg class="collapse-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <svg class="collapse-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                     </svg>
                 </h2>
@@ -94,57 +94,75 @@
                 <h2 class="text-xl font-semibold mb-1 border-b pb-2 text-purple-700 section-toggle" aria-expanded="true" aria-controls="other-tasks-content">
                     <span class="flex-grow">Other Tasks</span>
                     <button class="hide-section-button" data-section-id="other-tasks-section">Hide Section</button>
-                     <svg class="collapse-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <svg class="collapse-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                     </svg>
                 </h2>
-                 <div id="other-tasks-content" class="section-content">
+                <div id="other-tasks-content" class="section-content">
                     <ul class="list-none pl-0 mt-2"></ul>
-                 </div>
+                </div>
             </section>
         </div>
 
-         <div class="mt-4 text-right">
-             <span id="save-status" class="text-sm text-green-600 opacity-0">Saved!</span>
-             <p id="last-saved-timestamp" class="mt-1">Loading...</p>
-             <p id="storage-notice" class="mt-1">Your progress is saved locally.</p>
-         </div>
+        <div class="mt-4 text-right">
+            <span id="save-status" class="text-sm text-green-600 opacity-0">Saved!</span>
+            <p id="last-saved-timestamp" class="mt-1">Loading...</p>
+            <p id="storage-notice" class="mt-1">Your progress is saved locally.</p>
+        </div>
 
-         <p class="text-sm italic mt-8">*Remember, you don't have to do everything! Prioritize tasks based on your current goals and progress.*</p>
+        <p class="text-sm italic mt-8">*Remember, you don't have to do everything! Prioritize tasks based on your current goals and progress.*</p>
 
-         <div class="text-center mt-8 footer-links">
-             <a href="https://warframetools.com" target="_blank" rel="noopener noreferrer">WarframeTools</a>
-             <span>|</span>
-             <a href="https://github.com/warframe-tools/Task-Checklist" target="_blank" rel="noopener noreferrer">Github</a>
-             <span>|</span>
-             <a href="https://github.com/warframe-tools/Task-Checklist?tab=GPL-3.0-1-ov-file" target="_blank" rel="noopener noreferrer">License (GPLv3)</a>
-             <span>|</span>
-             <a href="https://hub.warframestat.us/" target="_blank" rel="noopener noreferrer">Warframe Hub</a>
-             <span>|</span>
-             <a href="https://wiki.warframe.com/" target="_blank" rel="noopener noreferrer">Warframe Wiki</a>
-             <span>|</span>
-             <a href="https://framehub.paroxity.net/" target="_blank" rel="noopener noreferrer">FrameHub</a>
-         </div>
+        <div class="text-center mt-8 footer-links">
+            <a href="https://warframetools.com" target="_blank" rel="noopener noreferrer">WarframeTools</a>
+            <span>|</span>
+            <a href="https://github.com/warframe-tools/Task-Checklist" target="_blank" rel="noopener noreferrer">Github</a>
+            <span>|</span>
+            <a href="https://github.com/warframe-tools/Task-Checklist?tab=GPL-3.0-1-ov-file" target="_blank" rel="noopener noreferrer">License (GPLv3)</a>
+            <span>|</span>
+            <a href="https://hub.warframestat.us/" target="_blank" rel="noopener noreferrer">Warframe Hub</a>
+            <span>|</span>
+            <a href="https://wiki.warframe.com/" target="_blank" rel="noopener noreferrer">Warframe Wiki</a>
+            <span>|</span>
+            <a href="https://framehub.paroxity.net/" target="_blank" rel="noopener noreferrer">FrameHub</a>
+        </div>
 
-         <p class="text-xs text-center mt-4">App Version <span class="version-text">X</span> (<a class="git-hash-text" target="_blank" rel="noopener noreferrer">X</a>)</p>
-         <p class="text-xs text-center mt-1 warframe-version-text">Warframe Version X</p>
-         <p class="text-xs text-center mt-2 px-4 disclaimer-text">
-             This is an unofficial fan-made tool. Warframe and all related assets are the intellectual property of Digital Extremes Ltd. This project is not affiliated with, endorsed by, or sponsored by Digital Extremes Ltd.
-         </p>
+        <p class="text-xs text-center mt-4">App Version <span class="version-text">X</span> (<a class="git-hash-text" target="_blank" rel="noopener noreferrer">X</a>)</p>
+        <p class="text-xs text-center mt-1 warframe-version-text">Warframe Version X</p>
+        <p class="text-xs text-center mt-2 px-4 disclaimer-text">
+            This is an unofficial fan-made tool. Warframe and all related assets are the intellectual property of Digital Extremes Ltd. This project is not affiliated with, endorsed by, or sponsored by Digital Extremes Ltd.
+        </p>
     </div>
 
     <div id="slideout-menu-overlay">
-        <div id="menu-content-box">
-            <div class="menu-header">
-                <span class="menu-title">Options</span>
-                <button id="menu-close-button" aria-label="Close menu">&times;</button>
-            </div>
+        <div id="menu-content-box" class="popover">
+            <header class="menu-header">
+                <h2 class="menu-title">Options</h2>
+                <button class="menu-close-button" aria-label="Close menu">&times;</button>
+            </header>
             <button id="reset-daily-button" class="menu-btn">Reset Daily Checks</button>
             <button id="reset-weekly-button" class="menu-btn">Reset Weekly Checks</button>
             <button id="reset-button" class="menu-btn">Reset All Checks</button>
             <button id="unhide-tasks-button" class="menu-btn">Unhide All Tasks</button>
         </div>
     </div>
+
+    <dialog id="cycle-schedule" class="popover">
+        <div>
+            <header class="menu-header">
+                <h2 class="menu-title">Schedule for <span id="schedule-title">X</span></h2>
+                <button class="menu-close-button" aria-label="Close schedule">&times;</button>
+            </header>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Item</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </dialog>
 
     <script type="module" src="js/app.js" defer></script>
 </body>
