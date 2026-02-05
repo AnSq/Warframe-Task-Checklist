@@ -13,9 +13,9 @@
     "weekly_kahl_garrison": {
         "ref": "2026-01-12",
         "order": [
-            { "text": "Sneaky Sabotage", "icon": "Corpus.png", "iconFilter": true },
-            { "text": "Junk Run", "icon": "Grineer.png", "iconFilter": true },
-            { "text": "Prison Break", "icon": "SentientFactionIcon.png", "iconFilter": true }
+            { "text": "Sneaky Sabotage", "icon": "FactionCorpus.png" },
+            { "text": "Junk Run", "icon": "FactionGrineer.png" },
+            { "text": "Prison Break", "icon": "SentientSymbol.png" }
         ]
     },
     "weekly_archon_hunt": {
