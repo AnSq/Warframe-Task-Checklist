@@ -837,6 +837,16 @@ function showScheduleAction(task, period, cycleNumber) {
     return () => {
         document.getElementById("schedule-title").innerText = task.text.split(":")[0]; // take the task text up to the first ":" as the dialog title
 
+        let taskIcon = scheduleDialog.querySelector(":scope .menu-title img.task-icon");
+        taskIcon.className = "task-icon";
+        taskIcon.src = "";
+        if (task.icon) {
+            taskIcon.src = iconURL(`tasks/${task.icon}`);
+            if (!task.noIconFilter) {
+                taskIcon.classList.add('icon-filter')
+            }
+        }
+
         const tbody = scheduleDialog.querySelector(":scope tbody");
         tbody.innerHTML = "";
 

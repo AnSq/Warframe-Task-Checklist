@@ -258,6 +258,18 @@ body:not(.light-mode) img.icon-filter {
     filter: brightness(0) invert(1);
 }
 
+.menu-title .task-icon {
+    /* height: 1em;
+    width: 1em; */
+    display: inline;
+    margin-right: 0.35em;
+    vertical-align: bottom;
+}
+.menu-title .task-icon[src=""] {
+    display: none;
+    margin: 0;
+}
+
 /* Collapsible Extra Task Info */
 .task-info-expander {
     display: grid;
