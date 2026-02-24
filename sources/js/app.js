@@ -647,6 +647,8 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
         listItem.appendChild(parentHeaderDiv);
 
         // Subtasks
+        const subtaskCollapsible = document.createElement("div");
+        subtaskCollapsible.classList.add("subtask-collapsible");
         const subtaskList = document.createElement('ul');
         subtaskList.id = `${task.id}-subtasks`;
         subtaskList.classList.add('list-none', 'pl-0', 'mt-1', 'subtask-list');
@@ -658,21 +660,22 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
                 subtaskList.appendChild(subtaskItem);
             });
         }
-        listItem.appendChild(subtaskList);
+        subtaskCollapsible.appendChild(subtaskList)
+        listItem.appendChild(subtaskCollapsible);
 
         // On Click -> Collapse/Expand
         parentHeaderDiv.addEventListener('click', (e) => {
             if (e.target !== checkbox && !checkbox.contains(e.target) && !controlsContainer.contains(e.target) && !collapseIcon.contains(e.target) ) {
                 const isExpanded = parentHeaderDiv.getAttribute('aria-expanded') === 'true';
                 parentHeaderDiv.setAttribute('aria-expanded', !isExpanded);
-                subtaskList.classList.toggle('collapsed', isExpanded);
+                subtaskCollapsible.classList.toggle('collapsed', isExpanded);
             }
         });
         collapseIcon.addEventListener('click', (e) => {
             e.stopPropagation();
             const isExpanded = parentHeaderDiv.getAttribute('aria-expanded') === 'true';
             parentHeaderDiv.setAttribute('aria-expanded', !isExpanded);
-            subtaskList.classList.toggle('collapsed', isExpanded);
+            subtaskCollapsible.classList.toggle('collapsed', isExpanded);
         });
 
         // Checkbox Changed -> Change Subtasks Checkboxes
