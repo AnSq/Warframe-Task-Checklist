@@ -36,7 +36,6 @@
             "id": "daily_world_syndicate_parent",
             "text": "World Syndicates (Standing)",
             "icon": "ReputationSmall.png",
-            "isParent": true,
             "subtasks": [
                 {
                     "id": "daily_world_syndicate_simaris",
@@ -144,10 +143,121 @@
             "prereq": "Steel Path unlocked"
         },
         {
+            "id": "daily_kim_parent",
+            "text": "KIM: complete daily chats with protoframes",
+            "location": "Base of Operations",
+            "terminal": "POM-2 PC",
+            "icon": "Computer.png",
+            "subtasks": [
+                {
+                    "id": "daily_kim_hex_parent",
+                    "text": "The Hex",
+                    "prereq": "The Hex (Quest)",
+                    "icon": "KIM/RetroPfpG.png",
+                    "noIconFilter": true,
+                    "subtasks": [
+                        {
+                            "id": "daily_kim_arthur",
+                            "text": "Broadsword (Arthur)",
+                            "icon": "KIM/RetroPfpA.png",
+                            "noIconFilter": true
+                        },
+                        {
+                            "id": "daily_kim_eleanor",
+                            "text": "Salem (Eleanor)",
+                            "icon": "KIM/RetroPfpE.png",
+                            "noIconFilter": true
+                        },
+                        {
+                            "id": "daily_kim_lettie",
+                            "text": "Belladona ~{@ (Lettie)",
+                            "icon": "KIM/RetroPfpB.png",
+                            "noIconFilter": true
+                        },
+                        {
+                            "id": "daily_kim_amir",
+                            "text": "H16h V0l7463 (Amir)",
+                            "icon": "KIM/RetroPfpC.png",
+                            "noIconFilter": true
+                        },
+                        {
+                            "id": "daily_kim_aoi",
+                            "text": "xX GLIMMER Xx (Aoi)",
+                            "icon": "KIM/RetroPfpD.png",
+                            "noIconFilter": true
+                        },
+                        {
+                            "id": "daily_kim_quincy",
+                            "text": "Soldja1Shot1kil (Quincy)",
+                            "icon": "KIM/RetroPfpF.png",
+                            "noIconFilter": true
+                        }
+                    ]
+                },
+                {
+                    "id": "daily_kim_roundtable_parent",
+                    "text": "The Roundtable",
+                    "prereq": "The Hex (Quest) Finale",
+                    "icon": "KIM/RetroPfpM.png",
+                    "noIconFilter": true,
+                    "subtasks": [
+                        {
+                            "id": "daily_kim_flare",
+                            "text": "Liminus_Star (Flare)",
+                            "icon": "KIM/RetroPfpJ.png",
+                            "noIconFilter": true,
+                            "prereq": "Rank 4 The Hex"
+                        },
+                        {
+                            "id": "daily_kim_minerva_velimir",
+                            "text": "MomToxicated & PapaPolar (Minerva & Velimir)",
+                            "icon": "KIM/RetroPfpI.png",
+                            "noIconFilter": true,
+                            "prereq": "Rank 5 The Hex"
+                        },
+                        {
+                            "id": "daily_kim_kaya",
+                            "text": "KOLTrial_5115 (Kaya)",
+                            "icon": "KIM/RetroPfpH.png",
+                            "noIconFilter": true,
+                            "prereq": "Rank 5 The Hex"
+                        }
+                    ]
+                },
+                {
+                    "id": "daily_kim_devils_triad_parent",
+                    "text": "The Devil's Triad",
+                    "prereq": "The Old Peace",
+                    "icon" : "KIM/Tau_RetroPfpA.png",
+                    "noIconFilter": true,
+                    "subtasks": [
+                        {
+                            "id": "daily_kim_marie",
+                            "text": "Marie",
+                            "icon": "KIM/Tau_RetroPfpB.png",
+                            "noIconFilter": true
+                        },
+                        {
+                            "id": "daily_kim_roathe",
+                            "text": "Roathe",
+                            "icon": "KIM/Tau_RetroPfpD.png",
+                            "noIconFilter": true
+                        },
+                        {
+                            "id": "daily_kim_lyon",
+                            "text": "Lyon",
+                            "icon": "KIM/Tau_RetroPfpC.png",
+                            "noIconFilter": true,
+                            "prereq": "\"Liked\" by Marie"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
             "id": "daily_vendors",
             "text": "Vendors",
             "icon": "Market.png",
-            "isParent": true,
             "subtasks": [
                 {
                     "id": "daily_acrithis",
@@ -237,7 +347,6 @@
             "id": "weekly_search_pulses",
             "text": "Search Pulses: Use 5 weekly search pulses on Netracells and Archimedeas.",
             "icon": "MagnifyingGlassIcon.png",
-            "isParent": true,
             "subtasks": [
                 {
                     "id": "weekly_netracells",
@@ -302,7 +411,6 @@
             "id": "weekly_vendors",
             "text": "Vendors",
             "icon": "Market.png",
-            "isParent": true,
             "subtasks": [
                 {
                     "id": "weekly_iron_wake",

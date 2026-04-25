@@ -579,7 +579,7 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
 
     // Hide/Notif Controls
     const controlsContainer = document.createElement('div');
-    controlsContainer.classList.add('flex', 'items-center', 'ml-auto');
+    controlsContainer.classList.add('ml-auto');
 
     // Notif Button
     if (task.id.startsWith('other_')) {
@@ -619,11 +619,11 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
     });
     controlsContainer.appendChild(hideButton);
 
-    if (task.isParent) {
+    if (task.subtasks) {
         listItem.classList.add('parent-task-container');
 
         const parentHeaderDiv = document.createElement('div');
-        parentHeaderDiv.classList.add('parent-task-header', 'flex', 'items-center', 'mb-1', 'w-full');
+        parentHeaderDiv.classList.add('parent-task-header', 'mb-1', 'w-full');
         parentHeaderDiv.setAttribute('aria-expanded', 'true');
         parentHeaderDiv.setAttribute('aria-controls', `${task.id}-subtasks`);
 
@@ -631,17 +631,18 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
         if (task.icon) { parentHeaderDiv.appendChild(icon); }
 
         // Task Text
-        const taskTextSpan = document.createElement('span');
-        taskTextSpan.textContent = task.text;
-        taskTextSpan.classList.add('task-text', 'ml-2', 'flex-grow', 'cursor-pointer');
-        if (isChecked) taskTextSpan.classList.add('checked');
+        const taskTextDiv = document.createElement('div');
+        taskTextDiv.textContent = task.text;
+        taskTextDiv.classList.add('task-text', 'ml-2', 'cursor-pointer');
+        if (isChecked) taskTextDiv.classList.add('checked');
+        makeInfoLine(task, taskTextDiv);
 
         // Collapse Button
         const collapseIcon = document.createElement("div");
         collapseIcon.setAttribute('class', 'collapse-icon');
         collapseIcon.innerHTML = svgIcons.collapseIcon;
 
-        parentHeaderDiv.appendChild(taskTextSpan);
+        parentHeaderDiv.appendChild(taskTextDiv);
         parentHeaderDiv.appendChild(controlsContainer);
         parentHeaderDiv.appendChild(collapseIcon);
         listItem.appendChild(parentHeaderDiv);
@@ -680,112 +681,41 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
 
         // Checkbox Changed -> Change Subtasks Checkboxes
         checkbox.addEventListener('change', (event) => {
-            const currentlyChecked = event.target.checked;
+            let currentlyChecked;
+            if ("detail" in event) {
+                currentlyChecked = event.detail;
+            } else {
+                currentlyChecked = event.target.checked;
+            }
+            console.log(`change ${task.id} (parent) ${currentlyChecked}`);
+
+            event.target.checked = currentlyChecked;
             checklistData.progress[task.id] = currentlyChecked;
-            taskTextSpan.classList.toggle('checked', currentlyChecked);
+            taskTextDiv.classList.toggle('checked', currentlyChecked);
 
             task.subtasks.forEach(subtask => {
-                checklistData.progress[subtask.id] = currentlyChecked;
                 const subCheckbox = document.getElementById(subtask.id);
-                const subLabel = document.querySelector(`label[for="${subtask.id}"]`);
-                if (subCheckbox) subCheckbox.checked = currentlyChecked;
-                if (subLabel) subLabel.classList.toggle('checked', currentlyChecked);
+
+                // this is kind of a stupid hack: We can recursively fire events with dispatchEvent, but those events
+                // don't know about the checkbox status of the originating event. So we attach that status to the
+                // `detail` of a CustomEvent, which takes priority over the local status. (Recursive firings like this
+                // allow for nested subtasks of arbitrary depth)
+                subCheckbox.dispatchEvent(new CustomEvent("change", {detail: currentlyChecked}));
             });
             saveData();
         });
 
     } else {
-        if (isSubtask) {
-            listItem.classList.add('ml-4');
-        }
-
         const label = document.createElement('label');
         label.htmlFor = task.id;
 
         // Task Text
         label.innerHTML = `<div class="task-text">${task.text}</div>`;
 
-        const hasCycle = Object.hasOwn(cycles, task.id);
-        const hasInfoLine = ["location", "npc", "terminal", "prereq", "info"].some((prop) => task[prop]);
+        // Info Line & Cycle Schedule
+        makeInfoLine(task, label);
 
-        if (hasCycle || hasInfoLine) {
-            const taskInfoExpander = document.createElement("div");
-            taskInfoExpander.classList.add("task-info-expander");
-            const taskInfoExpanderContent = document.createElement("div");
-
-            // Cycle
-            if (hasCycle) {
-                const currentCycle = document.createElement("div");
-                currentCycle.classList.add("current-cycle");
-
-                currentCycle.innerHTML += svgIcons.cycleIcon;
-
-                const now = new Date();
-                const ref = new Date(cycles[task.id].ref);
-                const cycleCount = cycles[task.id].order.length;
-
-                let prefix, period, cycleNumber;
-                if (task.id.startsWith("weekly_")) {
-                    prefix = "This&nbsp;Week";
-                    period = 7 * MILLISECONDS_PER_DAY;
-                    if (ref.getUTCDay() !== 1) {
-                        console.warn(`${task.id} cycle ref ${cycles[task.id].ref} is not a Monday`);
-                    }
-                }
-                else if (task.id.startsWith("daily_")) {
-                    prefix = "Today";
-                    period = MILLISECONDS_PER_DAY;
-                }
-                else {
-                    prefix = "Current&nbsp;Cycle";
-                    console.error(`cycles are not implemented for this task (${task.id})`);
-                }
-                cycleNumber = modulo(Math.floor((now.getTime() - ref.getTime()) / period), cycleCount);
-                console.log(`${task.id} cycleNumber ${cycleNumber}`);
-                const cycleData = cycles[task.id].order[cycleNumber];
-
-                const cyclePrefix = document.createElement("span");
-                cyclePrefix.innerHTML = `${prefix}: `;
-                currentCycle.appendChild(cyclePrefix);
-
-                currentCycle.innerHTML += makeCycleIcon(cycleData);
-
-                const cycleText = document.createElement("span");
-                cycleText.textContent = cycleData.text;
-                currentCycle.appendChild(cycleText);
-
-                const showSchedule = document.createElement("button");
-                showSchedule.type = "button";
-                showSchedule.classList.add("show-schedule-btn");
-                showSchedule.innerHTML = "Show&nbsp;Schedule";
-                showSchedule.addEventListener("click", showScheduleAction(task, period, cycleNumber));
-                currentCycle.appendChild(showSchedule);
-
-                taskInfoExpanderContent.appendChild(currentCycle);
-            }
-
-            // Info Line
-            if (hasInfoLine) {
-                if (task.npc && task.terminal) {console.warn(`Tasks should specify only one of [npc, terminal]. (${task.id})`);}
-                const infoLine = document.createElement('div');
-                infoLine.classList.add('info-line');
-                let infoLineHTML = "";
-                infoLineHTML += makeInfoLineItem(task, "location", "Location", svgIcons.locationIcon);
-                infoLineHTML = infoLineHTML.replace('Base of Operations', '<span class="tooltip" title="Orbiter, Drifter\'s Camp, or Backroom">$&</span>');
-                infoLineHTML += makeInfoLineItem(task, "npc", "NPC", svgIcons.npcIcon);
-                infoLineHTML += makeInfoLineItem(task, "terminal", "Terminal", svgIcons.terminalIcon);
-                infoLineHTML += makeInfoLineItem(task, "prereq", "Requirements", svgIcons.prereqIcon);
-                infoLineHTML += makeInfoLineItem(task, "info", "Info", svgIcons.infoIcon);
-                infoLine.innerHTML = infoLineHTML;
-
-                taskInfoExpanderContent.appendChild(infoLine);
-            }
-
-            taskInfoExpander.appendChild(taskInfoExpanderContent);
-            label.appendChild(taskInfoExpander);
-        }
-
-        label.classList.add('ml-2', 'flex-1', 'cursor-pointer');
+        label.classList.add('ml-2', 'cursor-pointer');
         if (isChecked) { label.classList.add('checked'); }
 
         listItem.appendChild(checkbox);
@@ -793,15 +723,24 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
         listItem.appendChild(label);
         listItem.appendChild(controlsContainer);
 
+        // Checkbox Changed
         checkbox.addEventListener('change', (event) => {
-            const currentlyChecked = event.target.checked;
+            let currentlyChecked;
+            if ("detail" in event) {
+                currentlyChecked = event.detail;
+            } else {
+                currentlyChecked = event.target.checked;
+            }
+            console.log(`change ${task.id} ${currentlyChecked}`);
+
+            event.target.checked = currentlyChecked;
             checklistData.progress[task.id] = currentlyChecked;
             label.classList.toggle('checked', currentlyChecked);
 
-            if (isSubtask && task.parentId) {
-                let parentTaskDefinition = tasks.daily.find(t => t.id === task.parentId) ||
-                                           tasks.weekly.find(t => t.id === task.parentId) ||
-                                           tasks.other.find(t => t.id === task.parentId);
+            // Update parent task checkboxes
+            let t = task;
+            while (t.parentId) {  // walk up the task tree
+                let parentTaskDefinition = getTaskById(t.parentId)
 
                 if (parentTaskDefinition && parentTaskDefinition.subtasks) {
                     const allSubtasksChecked = parentTaskDefinition.subtasks.every(st => checklistData.progress[st.id]);
@@ -814,6 +753,8 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
                     if (parentCheckbox) parentCheckbox.checked = allSubtasksChecked;
                     if (parentTextSpan) parentTextSpan.classList.toggle('checked', allSubtasksChecked);
                 }
+
+                t = parentTaskDefinition;  // move up a level
             }
             saveData();
         });
@@ -882,12 +823,123 @@ function showScheduleAction(task, period, cycleNumber) {
     }
 }
 
+function makeInfoLine(task, appendTo) {
+    const hasCycle = Object.hasOwn(cycles, task.id);
+    const hasInfoLine = ["location", "npc", "terminal", "prereq", "info"].some((prop) => task[prop]);
+
+    if (hasCycle || hasInfoLine) {
+        const taskInfoExpander = document.createElement("div");
+        taskInfoExpander.classList.add("task-info-expander");
+        const taskInfoExpanderContent = document.createElement("div");
+
+        // Cycle
+        if (hasCycle) {
+            const currentCycle = document.createElement("div");
+            currentCycle.classList.add("current-cycle");
+
+            currentCycle.innerHTML += svgIcons.cycleIcon;
+
+            const now = new Date();
+            const ref = new Date(cycles[task.id].ref);
+            const cycleCount = cycles[task.id].order.length;
+
+            let prefix, period, cycleNumber;
+            if (task.id.startsWith("weekly_")) {
+                prefix = "This&nbsp;Week";
+                period = 7 * MILLISECONDS_PER_DAY;
+                if (ref.getUTCDay() !== 1) {
+                    console.warn(`${task.id} cycle ref ${cycles[task.id].ref} is not a Monday`);
+                }
+            }
+            else if (task.id.startsWith("daily_")) {
+                prefix = "Today";
+                period = MILLISECONDS_PER_DAY;
+            }
+            else {
+                prefix = "Current&nbsp;Cycle";
+                console.error(`cycles are not implemented for this task (${task.id})`);
+            }
+            cycleNumber = modulo(Math.floor((now.getTime() - ref.getTime()) / period), cycleCount);
+            console.log(`${task.id} cycleNumber ${cycleNumber}`);
+            const cycleData = cycles[task.id].order[cycleNumber];
+
+            const cyclePrefix = document.createElement("span");
+            cyclePrefix.innerHTML = `${prefix}: `;
+            currentCycle.appendChild(cyclePrefix);
+
+            currentCycle.innerHTML += makeCycleIcon(cycleData);
+
+            const cycleText = document.createElement("span");
+            cycleText.textContent = cycleData.text;
+            currentCycle.appendChild(cycleText);
+
+            const showSchedule = document.createElement("button");
+            showSchedule.type = "button";
+            showSchedule.classList.add("show-schedule-btn");
+            showSchedule.innerHTML = "Show&nbsp;Schedule";
+            showSchedule.addEventListener("click", showScheduleAction(task, period, cycleNumber));
+            currentCycle.appendChild(showSchedule);
+
+            taskInfoExpanderContent.appendChild(currentCycle);
+        }
+
+        // Info Line
+        if (hasInfoLine) {
+            if (task.npc && task.terminal) {console.warn(`Tasks should specify only one of [npc, terminal]. (${task.id})`);}
+            const infoLine = document.createElement('div');
+            infoLine.classList.add('info-line');
+            let infoLineHTML = "";
+            infoLineHTML += makeInfoLineItem(task, "location", "Location", svgIcons.locationIcon);
+            infoLineHTML = infoLineHTML.replace('Base of Operations', '<span class="tooltip" title="Orbiter, Drifter\'s Camp, or Backroom">$&</span>');
+            infoLineHTML += makeInfoLineItem(task, "npc", "NPC", svgIcons.npcIcon);
+            infoLineHTML += makeInfoLineItem(task, "terminal", "Terminal", svgIcons.terminalIcon);
+            infoLineHTML += makeInfoLineItem(task, "prereq", "Requirements", svgIcons.prereqIcon);
+            infoLineHTML += makeInfoLineItem(task, "info", "Info", svgIcons.infoIcon);
+            infoLine.innerHTML = infoLineHTML;
+
+            taskInfoExpanderContent.appendChild(infoLine);
+        }
+
+        taskInfoExpander.appendChild(taskInfoExpanderContent);
+        appendTo.appendChild(taskInfoExpander);
+    }
+}
+
 function makeInfoLineItem(task, prop, iconToolTip, icon) {
     if (task[prop]) {
         return `<span class="${prop}"><span title="${iconToolTip}">${icon}</span>${task[prop]}</span><wbr />`;
     } else {
         return "";
     }
+}
+
+function getTaskById(id) {
+    for (const group in tasks) {
+        for (const task of tasks[group]) {
+            if (task.id === id) {
+                return task;
+            }
+            const subtaskFound = _getSubtaskById(task, id);
+            if (subtaskFound) {
+                return subtaskFound;
+            }
+        }
+    }
+}
+
+function _getSubtaskById(task, id) {
+    if ("subtasks" in task) {
+        for (const subtask of task.subtasks) {
+            if (subtask.id === id) {
+                return subtask;
+            }
+            const subtaskFound = _getSubtaskById(subtask, id);
+            if (subtaskFound) {
+                return subtaskFound;
+            }
+        }
+    }
+    return undefined;
 }
 
 function populateSection(sectionElement, taskList, progress) {
@@ -994,7 +1046,7 @@ function resetSection(section) {
             checklistData.progress[task.id] = false;
             didReset = true;
         }
-        if (task.isParent && task.subtasks) {
+        if (task.subtasks) {
             task.subtasks.forEach(subtask => {
                 if (checklistData.progress[subtask.id] && !checklistData.hiddenTasks[subtask.id]) {
                     checklistData.progress[subtask.id] = false;

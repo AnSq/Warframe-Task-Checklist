@@ -65,13 +65,13 @@ a.git-hash-text {
 
 /* --- Collapsible Section Styles (Non-Critical Parts) --- */
 .subtask-list {
-    margin-left: 1.5rem;
+    margin-left: 2rem;
     padding-left: 0;
     list-style: none;
 }
 .parent-task-header {
     display: flex;
-    align-items: center;
+    align-items: start;
     cursor: pointer;
 }
 .parent-task-header .task-text {
@@ -162,10 +162,14 @@ li.task-item {
     align-items: start;
     margin-bottom: 0.5rem;
 }
+li.task-item label {
+    flex: 1 1 0%;
+}
 li.parent-task-container {
     display: flex;
     flex-direction: column;
     align-items: stretch;
+    margin-bottom: 0;
 }
 #save-status { transition: opacity 0.5s ease-in-out; }
 
