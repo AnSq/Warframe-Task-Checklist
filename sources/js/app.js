@@ -17,15 +17,9 @@ const GIT_COMMIT_HASH = GIT_COMMIT_HASH_LONG.slice(0,7);
 const WARFRAME_VERSION = "42.0.7.1";
 const THEME_STORAGE_KEY = 'warframeChecklistTheme';
 
-function getStorageKey(appVersion) {
-    const versionParts = appVersion.split('.');
-    if (versionParts.length >= 1) {
-        const major = versionParts[0];
-        return `warframeChecklistData_v${major}`;
-    }
-    return `warframeChecklistData_v${appVersion.replace(/\./g, '_')}`;
-}
-const DATA_STORAGE_KEY = getStorageKey(APP_VERSION);
+// only update DATA_STORAGE_KEY when the data storage format changes
+// in a backwards-uncompatible way (this should be *very* rare)
+const DATA_STORAGE_KEY = "warframeChecklistData_format1";
 
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 
