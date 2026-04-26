@@ -459,6 +459,14 @@
                     "location": "Fortuna, Venus",
                     "npc": "Nightcap",
                     "prereq": "The New War"
+                },
+                {
+                    "id": "weekly_zorba",
+                    "text": "Aspirant Zorba: Trade Atramentum for Kuva.",
+                    "icon": "ZorbaQuickAccessIcon.png",
+                    "location": "Any Relay",
+                    "npc": "Aspirant Zorba",
+                    "prereq": "The Chains of Harrow"
                 }
             ]
         }

@@ -10,5 +10,5 @@ Icons should be monochromatic, square, and cropped to fill the entire canvas.
 resizing (requires [ImageMagick](https://imagemagick.org/)). Most images come
 as white and should be inverted so they're possible to see in Windows Explorer
 light mode. CSS converts it to all white or all black as appropriate for the
-theme. If a monochrome icon is not available, you can add `noIconFilter: true`
+theme. If a monochrome icon is not available, you can add `"noIconFilter": true`
 to the task and the icon will be shown in color as-is.

@@ -14,7 +14,7 @@ const dailyBackgroundImageIds = [
 const APP_VERSION = "4.0";
 const GIT_COMMIT_HASH_LONG = import.meta.env.VITE_GIT_COMMIT_HASH;
 const GIT_COMMIT_HASH = GIT_COMMIT_HASH_LONG.slice(0,7);
-const WARFRAME_VERSION = "41.0.7";
+const WARFRAME_VERSION = "42.0.7.1";
 const THEME_STORAGE_KEY = 'warframeChecklistTheme';
 
 function getStorageKey(appVersion) {
