@@ -3,15 +3,11 @@
 
 /* --- Background Image Styles --- */
 /* Paths are relative to this style.css file (e.g., if style.css is in sources/css/ and images are in sources/img/) */
-#bg-image-0 {
-    background-image: url('../img/garuda-fortuna.webp');
-}
-#bg-image-1 {
-    background-image: url('../img/gara-eidolon.webp');
-}
-#bg-image-2 {
-    background-image: url('../img/heart-of-deimos-warframe.webp');
-}
+#bg-image-0 { background-image: url('../img/garuda-fortuna.webp'); }
+#bg-image-1 { background-image: url('../img/gara-eidolon.webp'); }
+#bg-image-2 { background-image: url('../img/heart-of-deimos-warframe.webp'); }
+#bg-image-3 { background-image: url('../img/duviri.webp'); }
+#bg-image-4 { background-image: url('../img/perita.webp'); }
 /* Add more #bg-image-X rules if you have more images */
 
 .daily-background-image {
@@ -31,7 +27,7 @@
 .checklist-content h2:hover {
     background-color: var(--section-header-hover-bg);
 }
-.checklist-content label, .parent-task-header .task-text { color: var(--text-label); }
+.checklist-content .task-description { color: var(--text-label); }
 .checklist-content #last-saved-timestamp,
 .checklist-content #storage-notice {
     color: var(--text-muted);
@@ -65,22 +61,29 @@ a.git-hash-text {
 
 /* --- Collapsible Section Styles (Non-Critical Parts) --- */
 .subtask-list {
-    margin-left: 1.5rem;
+    margin-left: 2rem;
     padding-left: 0;
     list-style: none;
 }
 .parent-task-header {
     display: flex;
-    align-items: center;
+    align-items: start;
     cursor: pointer;
 }
-.parent-task-header .task-text {
-    flex-grow: 1;
+.task-description {
+    flex: 1 1 0%;
     margin-left: 0.5rem;
+    cursor: pointer;
 }
-.task-text.checked, label.checked {
+.task-description.checked {
     text-decoration: line-through;
     color: var(--text-label-checked);
+}
+.task-description.unavailable {
+    cursor: not-allowed;
+}
+.task-description.unavailable .task-text {
+    font-style: italic;
 }
 .task-item.hidden-task {
     display: none !important;
@@ -128,10 +131,11 @@ a.git-hash-text {
 .hide-section-button.visible {
     display: inline-block;
 }
-.baro-countdown, .eight-hour-countdown {
+.other-countdown {
     font-size: 0.75rem;
     color: var(--baro-timer-color);
-    margin-left: 0.25rem;
+    margin-left: 0.4rem;
+    display: inline-block;
 }
 
 
@@ -148,14 +152,29 @@ input[type="checkbox"] {
     background-color: var(--checkbox-bg);
     flex-shrink: 0;
 }
+input[type="checkbox"]::after {
+    position: absolute;
+    font-size: 0.8rem;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
 input[type="checkbox"]:checked {
     background-color: var(--checkbox-checked-bg);
     border-color: var(--checkbox-checked-border);
 }
 input[type="checkbox"]:checked::after {
-    content: '✔'; position: absolute;
-    color: white; font-size: 0.8rem;
-    top: 50%; left: 50%; transform: translate(-50%, -50%);
+    content: "✔";
+    color: var(--checkbox-check-color);
+}
+input[type="checkbox"]:indeterminate {
+    background-color: var(--checkbox-locked-bg);
+    border-color: var(--checkbox-locked-border);
+    cursor: not-allowed;
+}
+input[type="checkbox"]:indeterminate::after {
+    content: "\1F512\FE0E"; /* LOCK + VARIATION SELECTOR-15 (text presentation) */
+    color: var(--checkbox-lock-color);
 }
 li.task-item {
     display: flex;
@@ -166,6 +185,7 @@ li.parent-task-container {
     display: flex;
     flex-direction: column;
     align-items: stretch;
+    margin-bottom: 0;
 }
 #save-status { transition: opacity 0.5s ease-in-out; }
 
@@ -234,7 +254,7 @@ li.parent-task-container {
     opacity: 1;
     color: var(--menu-close-btn-hover-color);
 }
-#slideout-menu-overlay .menu-btn {
+#options-menu .menu-btn {
     display: block;
     width: 100%;
     text-align: left;
@@ -242,9 +262,54 @@ li.parent-task-container {
     margin-right: 0;
     margin-bottom: 0.75rem;
 }
-#slideout-menu-overlay .menu-btn:last-child {
+#options-menu .menu-btn:last-child {
     margin-bottom: 0;
 }
+
+/* Dialogs */
+dialog {
+    color: var(--text-label);
+    max-width: 52rem;
+}
+dialog::backdrop {
+    background-color: var(--backdrop-color);
+    backdrop-filter: var(--backdrop-filter);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    dialog {
+        --dialog-anim-duration: 0.15s;
+        --dialog-anim-easing: ease-out;
+        transition: transform var(--dialog-anim-duration) cubic-bezier(.25,1,.5,1),
+                    opacity var(--dialog-anim-duration) var(--dialog-anim-easing),
+                    display var(--dialog-anim-duration) allow-discrete,
+                    overlay var(--dialog-anim-duration) allow-discrete;
+        transform: scale(1);
+        opacity: 1;
+        @starting-style { /* this section is necessary for the opening animation */
+            transform: scale(0.95);
+            opacity: 0;
+        }
+    }
+    dialog:not([open]) { /* this section is necessary for the closing animation (closing animation doesn't work in Firefox) */
+        transform: scale(0.95);
+        opacity: 0;
+    }
+
+    dialog::backdrop {
+        transition: background-color var(--dialog-anim-duration) var(--dialog-anim-easing),
+                    backdrop-filter var(--dialog-anim-duration) var(--dialog-anim-easing);
+        @starting-style { /* opening */
+            background-color: transparent;
+            backdrop-filter: none;
+        }
+    }
+    dialog:not([open])::backdrop { /* closing */
+        background-color: transparent;
+        backdrop-filter: none;
+    }
+}
+
 
 /* Task Icons */
 .task-icon {
@@ -275,7 +340,9 @@ body:not(.light-mode) img.icon-filter {
     display: grid;
     grid-template-rows: 1fr;
     overflow: hidden;
-    transition: grid-template-rows 200ms; /* https://css-tricks.com/css-grid-can-do-auto-height-transitions/ */
+}
+@media (prefers-reduced-motion: no-preference) {
+    .task-info-expander { transition: grid-template-rows 200ms; /* https://css-tricks.com/css-grid-can-do-auto-height-transitions/ */ }
 }
 .task-item .checked .task-info-expander {
     grid-template-rows: 0fr;
@@ -303,7 +370,7 @@ body:not(.light-mode) img.icon-filter {
 }
 
 /* Cycle Schedule */
-.show-schedule-btn {
+.more-info-btn {
     display: inline-block;
     padding: 0 0.375em;
     border-radius: 0.375rem;
@@ -313,20 +380,14 @@ body:not(.light-mode) img.icon-filter {
     font-size: 75%;
     vertical-align: text-bottom;
 }
-.show-schedule-btn:hover {
+.more-info-btn:hover {
     background-color: var(--theme-toggle-hover-bg);
     border-color: var(--theme-toggle-hover-border);
     color: var(--text-label);
 }
 
-#cycle-schedule::backdrop {
-    background-color: var(--backdrop-color);
-    backdrop-filter: var(--backdrop-filter);
-}
-
-#cycle-schedule {
+#cycle-schedule, #more-info {
     table {
-        color: var(--text-label);
         margin: auto;
     }
     thead {
@@ -336,8 +397,11 @@ body:not(.light-mode) img.icon-filter {
         text-underline-offset: 0.25em;
     }
     th:before, th:after {
-        content: "\00a0\00a0\00a0\00a0";
+        content: "\00a0\00a0\00a0\00a0"; /* some no-break spaces added so the underline extends a bit on both sides */
     }
+}
+
+#cycle-schedule {
     tbody tr:first-child td {
         font-weight: 600;
     }
@@ -352,6 +416,29 @@ body:not(.light-mode) img.icon-filter {
         font-size: 75%;
         color: var(--text-muted);
         text-align: center;
+    }
+}
+
+/* More Info */
+#more-info {
+    p:not(:last-child):not(:has(+ :is(ul, table))), table {
+        margin-bottom: 1em;
+    }
+    ul {
+        list-style: "\2212   " outside;
+        padding-left: 2em;
+    }
+    th, td {
+        text-align: center;
+        padding: 0 0.5em;
+    }
+    a {
+        color: var(--link-color);
+        text-decoration: underline;
+        transition: color 0.2s ease;
+    }
+    a:hover {
+        color: var(--link-hover-color);
     }
 }
 
