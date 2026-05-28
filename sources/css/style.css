@@ -28,18 +28,39 @@
     background-color: var(--section-header-hover-bg);
 }
 .checklist-content .task-description { color: var(--text-label); }
-.checklist-content #last-saved-timestamp,
-.checklist-content #storage-notice {
+
+#save-info {
+    margin-top: 1rem;
+    text-align: right;
     color: var(--text-muted);
     font-size: 0.75rem;
+}
+#save-info p {
     margin-top: 0.25rem;
 }
-.checklist-content .italic { color: var(--text-secondary); }
-.checklist-content .text-xs { color: var(--text-muted); }
+#save-status {
+    color: rgb(22 163 74 / 1);
+    opacity: 0;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    transition: opacity 0.5s ease-in-out;
+}
+.reminder-notice {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-style: italic;
+    margin-top: 2rem;
+}
+
+footer {
+    text-align: center;
+}
 
 .checklist-content .footer-links {
     font-size: 0.75rem;
     color: var(--text-muted);
+    margin-top: 2rem;
 }
 .checklist-content .footer-links a {
     color: var(--link-color);
@@ -55,20 +76,41 @@
     margin: 0 0.1rem;
 }
 
+#footer-info {
+    font-size: 0.75rem;
+    line-height: 1rem;
+    color: var(--text-muted);
+    margin-top: 1rem;
+}
+.warframe-version-text {
+    margin-top: 0.25rem;
+}
+.disclaimer-text {
+    margin-top: 0.5rem;
+    padding: 0 1rem;
+}
+
+.section-content ul {
+    list-style: none;
+    margin-top: 0.5rem;
+    padding: 0;
+}
+
 a.git-hash-text {
     text-decoration: underline;
+    color: inherit;
 }
 
 /* --- Collapsible Section Styles (Non-Critical Parts) --- */
-.subtask-list {
+.section-content .subtask-list {
     margin-left: 2rem;
-    padding-left: 0;
-    list-style: none;
+    margin-top: 0.25rem;
 }
 .parent-task-header {
     display: flex;
     align-items: start;
     cursor: pointer;
+    margin-bottom: 0.25rem;
 }
 .task-description {
     flex: 1 1 0%;
@@ -187,7 +229,6 @@ li.parent-task-container {
     align-items: stretch;
     margin-bottom: 0;
 }
-#save-status { transition: opacity 0.5s ease-in-out; }
 
 /* --- Buttons (Base styles, colors set below) --- */
 .menu-btn {
@@ -399,18 +440,23 @@ body:not(.light-mode) img.icon-filter {
     th:before, th:after {
         content: "\00a0\00a0\00a0\00a0"; /* some no-break spaces added so the underline extends a bit on both sides */
     }
-}
-
-#cycle-schedule {
-    tbody tr:first-child td {
-        font-weight: 600;
+    :is(th, td):not(:last-child) {
+        padding-right: 1em;
     }
     td {
         vertical-align: top;
     }
-    tr > :first-child:not(.cycle-repeats) {
+    th, td:not(:has(.cycle-icon)) {
         text-align: center;
-        padding-right: 1em;
+    }
+    td:has(.cycle-icon) {
+        text-align: left;
+    }
+}
+
+#cycle-schedule {
+    tbody tr:first-child {
+        font-weight: 600;
     }
     .cycle-repeats {
         font-size: 75%;
@@ -430,7 +476,6 @@ body:not(.light-mode) img.icon-filter {
     }
     th, td {
         text-align: center;
-        padding: 0 0.5em;
     }
     a {
         color: var(--link-color);

@@ -467,7 +467,6 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
 
     // Hide/Notif Controls
     const controlsContainer = document.createElement('div');
-    controlsContainer.classList.add('ml-auto');
 
     // Notif Button
     if (task.id.startsWith('other_')) {
@@ -511,7 +510,7 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
         listItem.classList.add('parent-task-container');
 
         const parentHeaderDiv = document.createElement('div');
-        parentHeaderDiv.classList.add('parent-task-header', 'mb-1', 'w-full');
+        parentHeaderDiv.classList.add('parent-task-header');
         parentHeaderDiv.setAttribute('aria-expanded', 'true');
         parentHeaderDiv.setAttribute('aria-controls', `${task.id}-subtasks`);
 
@@ -544,7 +543,7 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
         subtaskCollapsible.classList.add("subtask-collapsible");
         const subtaskList = document.createElement('ul');
         subtaskList.id = `${task.id}-subtasks`;
-        subtaskList.classList.add('list-none', 'pl-0', 'mt-1', 'subtask-list');
+        subtaskList.classList.add('subtask-list');
         if (task.subtasks && Array.isArray(task.subtasks)) {
             task.subtasks.forEach((subtask) => {
                 subtask.parentId = task.id;
@@ -688,13 +687,22 @@ function taskDialogHeaderSetup(task, dialog) {
 }
 
 function showScheduleAction(task, period, cycleIndex, isAvailable) {
-    const cycleCount = cycles[task.id].order.length;
+    const cycleCount = cycles[task.id].columns[0].order.length;
 
     return () => {
         taskDialogHeaderSetup(task, scheduleDialog);
 
+        const thead = scheduleDialog.querySelector(":scope thead");
         const tbody = scheduleDialog.querySelector(":scope tbody");
+        thead.innerHTML = "";
         tbody.innerHTML = "";
+
+        let header = `<tr><th>Date</th>`;
+        for (const column of cycles[task.id].columns) {
+            header += `<th>${column.name}</th>`;
+        }
+        header += "</tr>";
+        thead.innerHTML += header;
 
         const now = new Date();
         const ref = new Date(cycles[task.id].ref);
@@ -710,16 +718,19 @@ function showScheduleAction(task, period, cycleIndex, isAvailable) {
 
             let repeat = "";
             if (i === cycleCount) {
-                repeat = '<tr><td colspan="2" class="cycle-repeats">(Cycle Repeats)</td></tr>';
+                repeat = `<tr><td colspan="${cycles[task.id].columns.length + 1}" class="cycle-repeats">(Cycle Repeats)</td></tr>`;
             }
 
-            const rowData = cycles[task.id].order[modulo(cycleIndex + i, cycleCount)];
+            let row = `${repeat}<tr><td>${date}</td>`; // intermediate `row` variable is needed because manipulating `tbody.innerHTML` automatically adds `</tr>` tag
 
-            tbody.innerHTML +=
-                `${repeat}<tr>
-                    <td>${date}</td>
-                    <td>${makeCycleIcon(rowData)}${rowData.text}</td>
-                </tr>`;
+            for (const column of cycles[task.id].columns) {
+                const cellData = column.order[modulo(cycleIndex + i, cycleCount)];
+                const align = column.align ? ` style="text-align: ${column.align}"` : "";
+                row += `<td${align}>${makeCycleIcon(cellData)}${cellData.text}</td>`;
+            }
+
+            row += "</tr>";
+            tbody.innerHTML += row;
         }
         scheduleDialog.showModal();
     }
@@ -751,7 +762,7 @@ function makeInfoLine(task, appendTo) {
 
             const now = new Date();
             const ref = new Date(cycles[task.id].ref);
-            const cycleCount = cycles[task.id].order.length;
+            const cycleCount = cycles[task.id].columns[0].order.length;
 
             let prefix, period, cycleIndex;
             const isAvailable = calcTaskTimes(task, now).isAvailable;
@@ -775,7 +786,7 @@ function makeInfoLine(task, appendTo) {
             cycleIndex = modulo(Math.floor((now.getTime() - ref.getTime()) / period), cycleCount);
             if (!isAvailable) {cycleIndex++;}
             console.log(`${task.id} cycleIndex ${cycleIndex}`);
-            const cycleData = cycles[task.id].order[cycleIndex];
+            const cycleData = cycles[task.id].columns[0].order[cycleIndex];
 
             const cyclePrefix = document.createElement("span");
             cyclePrefix.innerHTML = `${prefix}: `;
