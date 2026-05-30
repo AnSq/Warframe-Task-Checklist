@@ -1,53 +1,78 @@
 import { describe, expect, test } from "vitest";
+import Ajv from "ajv/dist/2020";
+import addFormats from "ajv-formats";
+
 import tasks from "../js/tasks.json" with {type: "json"};
-import { parseDuration } from "../js/functions.js";
+import tasks_schema from "./tasks.schema.json" with {type: "json"};
+import cycles from "../js/cycles.json" with {type: "json"};
+import cycles_schema from "./cycles.schema.json" with {type: "json"};
+import moreInfo from "../js/moreInfo";
+
+const ajv = new Ajv({ allErrors: true });
+addFormats(ajv);
+
+const validate_tasks_schema = ajv.compile(tasks_schema);
+const validate_cycles_schema = ajv.compile(cycles_schema);
 
 describe("valildate task definitions", () => {
-    describe("sections", () => {
-        test("valid sections", () => {
-            expect(Object.keys(tasks).sort()).toStrictEqual(["daily", "other", "weekly"]);
-        });
+    test.for([
+        ["tasks", validate_tasks_schema, tasks],
+        ["cycles", validate_cycles_schema, cycles]
+    ])("validate %s against schema", ([which, validation_function, data]) => {
+        const valid = validation_function(data);
+        if (!valid) { console.error(validation_function.errors); }
+        const message = `${which} schema validation failed:\n${JSON.stringify(validation_function.errors, null, 4)}\n`;
+        expect(valid, message).toBeTruthy();
+    });
 
-        test.for(Object.keys(tasks))("%s", (section) => {
-            expect(tasks[section]).toBeInstanceOf(Array);
+    // flatten the nested tree of [sub]tasks into an array
+    let stack = [];
+    let flatTasks = [];
+    for (const section in tasks) {
+        for (const t of tasks[section]) {
+            stack.push(t);
+        }
+    }
+    while (stack.length) {
+        const t = stack.pop();
+        flatTasks.push(t);
+        if (t.subtasks) {
+            for (const s of t.subtasks) {
+                stack.push(s);
+            }
+        }
+    }
+
+    const task_ids = flatTasks.map((t) => t.id);
+
+    test("verify unique task ids", () => {
+        let used_ids = [];
+        for (const id of task_ids) {
+            expect(used_ids, "task ids must be unique").not.toContain(id);
+            used_ids.push(id);
+        }
+    });
+
+    const cycle_keys_for_test = Object.keys(cycles).map((i) => [i]);
+
+    describe("verify equal `order` lengths", () => {
+        test.for(cycle_keys_for_test)("%s", ([task_id]) => {
+            for (const col of cycles[task_id].columns) {
+                expect(col.order.length, "column lengths are not equal").toEqual(cycles[task_id].columns[0].order.length)
+            }
         });
     });
 
-    describe("well formed tasks", () => {
-        // flatten the nested tree of [sub]tasks into an array
-        let stack = [];
-        let flatTasks = [];
-        for (const section in tasks) {
-            for (const t of tasks[section]) {
-                t.__section__ = section;
-                stack.push(t);
-            }
-        }
-        while (stack.length) {
-            const t = stack.pop();
-            flatTasks.push(t);
-            if (t.subtasks) {
-                for (const s of t.subtasks) {
-                    s.__section__ = t.__section__;
-                    stack.push(s);
-                }
-            }
-        }
+    describe("verify cycle task ids", () => {
+        test.for(cycle_keys_for_test)("%s", ([task_id]) => {
+            expect(task_ids, "cycle keys must be task ids from `tasks.json`").toContain(task_id);
+        });
+    });
 
-        test.for(flatTasks)("$id", (task) => {
-            expect(task).toHaveProperty("id");
-            expect.soft(task.id.split("_")[0], `Task id should start with the section name (e.g. ${task.__section__}_${task.id} instead of ${task.id})`).toEqual(task.__section__);
-            expect(task).toHaveProperty("text");
-            expect.soft(task, "Task should have an icon").toHaveProperty("icon");
-            if (task.subtasks) {expect(task.subtasks).toBeInstanceOf(Array);}
-            if (task.npc) {expect.soft(task.terminal, "Tasks should specify only one of [npc, terminal].").toBeUndefined();}
-            if (task.__section__ === "other") {
-                expect(task, 'other_* tasks MUST specify a "period"').toHaveProperty("period");
-                expect(parseDuration(task.period), `"${task.period}" is not a valid period`).toBeGreaterThan(0);
-                expect.soft(task, 'other_* tasks SHOULD specify a "ref". The default ref of 0 ("1970-01-01T00:00:00Z") will be used otherwise.').toHaveProperty("ref");
-            } else {
-                expect(task, "Daily and weekly tasks MUST NOT specify a period").not.toHaveProperty("period");
-            }
+    describe("validate moreInfo", () => {
+        test.for(Object.keys(moreInfo).map((i) => [i]))("%s", ([task_id]) => {
+            expect(task_ids, "moreInfo keys must be task ids from `tasks.json`").toContain(task_id);
+            expect(moreInfo[task_id]).toBeTypeOf("string");
         });
     });
 });

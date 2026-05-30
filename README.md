@@ -9,14 +9,15 @@ The live version of this branch is deployed at [ansq.github.io/Warframe-Task-Che
 
 ## Description
 
-This tool provides checklists for common recurring activities in Warframe. It saves your progress directly in your browser's local storage, automatically resets daily and weekly tasks based on UTC time, and offers a few customization options. The application is built using HTML, CSS (with Tailwind CSS via CDN for rapid styling), vanilla JavaScript, and is processed with Vite for an optimized production build.
+This tool provides checklists for common recurring activities in Warframe. It saves your progress directly in your browser's local storage, automatically resets daily and weekly tasks based on UTC time, and offers a few customization options. The application is built using HTML, CSS, vanilla JavaScript, and is processed with Vite for an optimized production build.
 
 ## Credits
 
-* **Vite:** [vitejs.dev](https://vitejs.dev/)
-* **Tailwind CSS:** [tailwindcss.com](https://tailwindcss.com/)
-* **Inter Font:** Self-hosted. (https://fonts.google.com/specimen/Inter).
+* **Vite:** [vite.dev](https://vite.dev/)
+* **Inter Font:** Self-hosted. (https://fonts.google.com/specimen/Inter)
 * **Heroicons:** [heroicons.com](https://heroicons.com/)
+* [sanitize.css](https://www.npmjs.com/package/sanitize.css)
+* [Vitest](https://vitest.dev/) and [Ajv](https://ajv.js.org/) for automated testing tools.
 * Task list based on information discussed in the Warframe community.
 
 ## Disclaimer
