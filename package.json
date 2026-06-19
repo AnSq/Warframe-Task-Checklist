@@ -1,6 +1,6 @@
 {
   "name": "task-checklist",
-  "version": "5.0.1",
+  "version": "5.1",
   "description": "A Warframe Task Checklist to track daily, weekly, and other tasks. Built with HTML, CSS, and vanilla JavaScript, processed with Vite.",
   "type": "module",
   "scripts": {
@@ -35,7 +35,7 @@
     "ajv-formats": "^3.0.1",
     "jsdom": "^29.1.1",
     "sanitize.css": "^13.0.0",
-    "vite": "^8.0.14",
+    "vite": "^8.0.16",
     "vite-plugin-singlefile": "^2.3.3",
     "vitest": "^4.1.5"
   }
