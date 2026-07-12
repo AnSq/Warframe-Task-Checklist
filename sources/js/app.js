@@ -3,7 +3,9 @@ console.log(`vite mode: ${import.meta.env.MODE}`);
 
 import {
     modulo,
+    newChecklistData,
     iconURL,
+    makeTaskIcon,
     makeCycleIcon,
     formatTimestamp,
     getMostRecentMondayMidnightUTC,
@@ -15,6 +17,7 @@ import {
     calcCycleNumber,
     makeInfoLineItem,
     calcTaskTimes,
+    makeSectionStats,
 } from "./functions.js";
 
 import * as C from "./constants.js";
@@ -31,10 +34,10 @@ const dailyBackgroundImageIds = [
     'bg-image-4',
     // Add more IDs if you add more background image divs in HTML
 ];
-const APP_VERSION = "5.2.1";
+const APP_VERSION = "5.3";
 const GIT_COMMIT_HASH_LONG = import.meta.env.VITE_GIT_COMMIT_HASH;
 const GIT_COMMIT_HASH = GIT_COMMIT_HASH_LONG.slice(0,7);
-const WARFRAME_VERSION = "43.0.3";
+const WARFRAME_VERSION = "43.0.7";
 const THEME_STORAGE_KEY = 'warframeChecklistTheme';
 
 // only update DATA_STORAGE_KEY when the data storage format changes
@@ -66,8 +69,8 @@ _prepTasks();
 let bodyElement, themeToggleButton, hamburgerButton, optionsMenu, resetDailyButton, resetWeeklyButton, resetButton,
     unhideTasksButton, lastSavedTimestampElement, saveStatusElement, sectionToggles, dailyResetTimeElement,
     weeklyResetTimeElement, errorDisplayElement, errorMessageElement, errorCloseButton, errorCopyButton,
-    appVersionElement, gitHashElement, wfVersionElement, scheduleDialog, moreInfoDialog, backgroundDivs,
-    hideCompletedToggle = [];
+    appVersionElement, gitHashElement, wfVersionElement, scheduleDialog, moreInfoDialog, hiddenTasksDialog,
+    backgroundDivs, hideCompletedToggle = [];
 
 
 // --- State Variables ---
@@ -78,20 +81,9 @@ const confirmState = {
     unhide: { timeout: null, isConfirming: false }
 };
 
-let checklistData = {
-    progress: {},
-    lastSaved: null,
-    lastDailyReset: null,
-    lastWeeklyReset: null,
-    hiddenTasks: {},
-    manuallyHiddenSections: {},
-    lastTaskResetTimes: {},
-    notificationPreferences: {},
-    notificationsSent: {},
-    hideCompletedTasks: false
-};
+let checklistData = newChecklistData();
 
-let currentTheme = 'dark';
+let currentTheme = "dark";
 let saveStatusTimeout;
 let countdownInterval;
 
@@ -99,27 +91,28 @@ let countdownInterval;
 
 function initializeDOMElements() {
     bodyElement = document.body;
-    themeToggleButton = document.getElementById('theme-toggle-button');
-    hamburgerButton = document.getElementById('hamburger-button');
+    themeToggleButton = document.getElementById("theme-toggle-button");
+    hamburgerButton = document.getElementById("hamburger-button");
     optionsMenu = document.getElementById("options-menu");
-    resetDailyButton = document.getElementById('reset-daily-button');
-    resetWeeklyButton = document.getElementById('reset-weekly-button');
-    resetButton = document.getElementById('reset-button');
-    unhideTasksButton = document.getElementById('unhide-tasks-button');
-    lastSavedTimestampElement = document.getElementById('last-saved-timestamp');
-    saveStatusElement = document.getElementById('save-status');
-    sectionToggles = document.querySelectorAll('.section-toggle');
-    dailyResetTimeElement = document.getElementById('daily-reset-local-time');
-    weeklyResetTimeElement = document.getElementById('weekly-reset-local-time');
-    errorDisplayElement = document.getElementById('error-display');
-    errorMessageElement = document.getElementById('error-message');
-    errorCloseButton = document.getElementById('error-close-button');
-    errorCopyButton = document.getElementById('error-copy-button');
-    appVersionElement = document.querySelector('.version-text');
-    gitHashElement = document.querySelector('.git-hash-text');
-    wfVersionElement = document.querySelector('.warframe-version-text');
+    resetDailyButton = document.getElementById("reset-daily-button");
+    resetWeeklyButton = document.getElementById("reset-weekly-button");
+    resetButton = document.getElementById("reset-button");
+    unhideTasksButton = document.getElementById("unhide-tasks-button");
+    lastSavedTimestampElement = document.getElementById("last-saved-timestamp");
+    saveStatusElement = document.getElementById("save-status");
+    sectionToggles = document.querySelectorAll(".section-toggle");
+    dailyResetTimeElement = document.getElementById("daily-reset-local-time");
+    weeklyResetTimeElement = document.getElementById("weekly-reset-local-time");
+    errorDisplayElement = document.getElementById("error-display");
+    errorMessageElement = document.getElementById("error-message");
+    errorCloseButton = document.getElementById("error-close-button");
+    errorCopyButton = document.getElementById("error-copy-button");
+    appVersionElement = document.querySelector(".version-text");
+    gitHashElement = document.querySelector(".git-hash-text");
+    wfVersionElement = document.querySelector(".warframe-version-text");
     scheduleDialog = document.getElementById("cycle-schedule");
     moreInfoDialog = document.getElementById("more-info");
+    hiddenTasksDialog = document.getElementById("hidden-tasklist");
     hideCompletedToggle = document.getElementById("hide-completed");
 
     backgroundDivs = [];
@@ -307,7 +300,7 @@ export function displayOtherTaskCountdown(task) {
 
             // Leaving soon notification (Arrival notification is handled in runAutoResets, the same as always available tasks)
             if (diff < C.MILLISECONDS_PER_HOUR && checklistData.notificationPreferences[task.id] && checklistData.notificationsSent[leaveNotifId] !== cycleNumber) {
-                showNotification(`${task.text.split(":")[0]} Leaving Soon!`, `Approximately ${Math.round(diff / C.MILLISECONDS_PER_MINUTE)} minutes remaining.`);
+                showNotification(`${task.title} Leaving Soon!`, `Approximately ${Math.round(diff / C.MILLISECONDS_PER_MINUTE)} minutes remaining.`);
                 checklistData.notificationsSent[leaveNotifId] = cycleNumber;
                 saveData(false);
             }
@@ -373,8 +366,9 @@ function otherTaskReset(task) {
     const lastResetCycleNumber = calcCycleNumber(task, lastResetTime);
     if (cycleNumber > lastResetCycleNumber || !calcTaskTimes(task, now).isAvailable) {
         // Reset task
-        if (checklistData.progress[task.id] && !checklistData.hiddenTasks[task.id]) {
+        if (checklistData.progress[task.id] || checklistData.skippedTasks[task.id]) {
             checklistData.progress[task.id] = false;
+            checklistData.skippedTasks[task.id] = false;
             console.log(`Resetting task: ${task.id}`);
             didReset = true;
         }
@@ -388,7 +382,7 @@ function otherTaskReset(task) {
 
         // Send and record new notification
         if (checklistData.notificationPreferences[task.id] && checklistData.notificationsSent[task.id] !== cycleNumber) {
-            showNotification(`${task.text.split(":")[0]} has reset!`, "Vendor stock may have updated.");
+            showNotification(`${task.title} has reset!`, "Vendor stock may have updated.");
             checklistData.notificationsSent[task.id] = cycleNumber;
             saveData(false);
         }
@@ -430,11 +424,11 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
     const isAvailable = calcTaskTimes(task, new Date()).isAvailable;
 
     const listItem = document.createElement("li");
-    listItem.classList.add("task-autohide-expander");
+    listItem.classList.add("task-expander");
 
     const taskItem = document.createElement("div");
     taskItem.classList.add("task-item");
-    if (checklistData.hiddenTasks[task.id]) {
+    if (checklistData.hiddenTasks[task.id] || checklistData.skippedTasks[task.id]) {
         taskItem.classList.add("hidden-task");
     }
 
@@ -459,52 +453,67 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
     });
 
     // Task Icon
-    const icon = document.createElement('img');
-    if (task.icon) {
-        icon.src = iconURL(`tasks/${task.icon}`);
-        icon.classList.add("task-icon");
-        if (!task.noIconFilter) {
-            icon.classList.add('icon-filter')
-        }
-    }
+    const icon = makeTaskIcon(task);
 
     // Hide/Notif Controls
     const controlsContainer = document.createElement('div');
 
     // Notif Button
-    if (task.id.startsWith('other_')) {
-        const notificationButton = document.createElement('button');
-        notificationButton.classList.add('notification-toggle-btn');
-        notificationButton.setAttribute('aria-label', `Toggle notifications for ${task.text.split(':')[0]}`);
-        notificationButton.title = `Toggle notifications for ${task.text.split(':')[0]}`;
+    if (task.id.startsWith("other_")) {
+        const notificationButton = document.createElement("button");
+        notificationButton.classList.add("notification-toggle-btn", "task-ctrl-btn");
+        notificationButton.setAttribute("aria-label", `Toggle notifications for ${task.title}`);
+        notificationButton.title = `Toggle notifications for ${task.title}`;
 
         notificationButton.innerHTML = svgIcons.bellIcon;
         if (checklistData.notificationPreferences[task.id]) { notificationButton.classList.add("active"); }
 
-        notificationButton.addEventListener('click', async (e) => {
+        notificationButton.addEventListener("click", async (e) => {
             e.stopPropagation();
             const permissionGranted = await requestNotificationPermission();
             if (permissionGranted) {
                 checklistData.notificationPreferences[task.id] = !checklistData.notificationPreferences[task.id];
-                notificationButton.classList.toggle('active', checklistData.notificationPreferences[task.id]);
+                notificationButton.classList.toggle("active", checklistData.notificationPreferences[task.id]);
                 saveData(false);
-                console.log(`Notifications for ${task.id} ${checklistData.notificationPreferences[task.id] ? 'enabled' : 'disabled'}`);
+                console.log(`Notifications for ${task.id} ${checklistData.notificationPreferences[task.id] ? "enabled" : "disabled"}`);
             }
         });
         controlsContainer.appendChild(notificationButton);
     }
 
+    // Skip Button
+    const skipButton = document.createElement("button");
+    let when = "this cycle";
+    if (task.id.startsWith("daily_")) { when = "today"; }
+    else if (task.id.startsWith("weekly_")) { when = "this week"; }
+    skipButton.classList.add("task-ctrl-btn");
+    skipButton.setAttribute("aria-label", `Skip task ${when}: ${task.title}`);
+    skipButton.title = `Skip task ${when}: ${task.title}`;
+    skipButton.innerHTML = svgIcons.skipIcon;
+    skipButton.addEventListener("click", (e) => {
+        e.stopPropagation();
+        checklistData.skippedTasks[task.id] = true;
+        taskItem.classList.add("hidden-task");
+        updateSectionControls(taskItem.closest("section").id);
+        if (task.parentId) { calcSectionStats(task.parentId); }
+        calcSectionStats(task.id.split("_")[0]);
+        saveData(false);
+    });
+    controlsContainer.appendChild(skipButton);
+
     // Hide Button
-    const hideButton = document.createElement('button');
-    hideButton.classList.add('hide-task-btn');
-    hideButton.setAttribute('aria-label', `Hide task: ${task.text.split(':')[0]}`);
-    hideButton.title = `Hide task: ${task.text.split(':')[0]}`;
+    const hideButton = document.createElement("button");
+    hideButton.classList.add("task-ctrl-btn");
+    hideButton.setAttribute("aria-label", `Hide task: ${task.title}`);
+    hideButton.title = `Hide task: ${task.title}`;
     hideButton.innerHTML = svgIcons.hideIcon;
-    hideButton.addEventListener('click', (e) => {
+    hideButton.addEventListener("click", (e) => {
         e.stopPropagation();
         checklistData.hiddenTasks[task.id] = true;
         taskItem.classList.add("hidden-task");
         updateSectionControls(taskItem.closest("section").id);
+        if (task.parentId) { calcSectionStats(task.parentId); }
+        calcSectionStats(task.id.split("_")[0]);
         saveData(false);
     });
     controlsContainer.appendChild(hideButton);
@@ -523,12 +532,19 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
         // Task Text & Info Line
         const taskDescription = document.createElement("div");
         taskDescription.classList.add("task-description");
-        const taskText = document.createElement('span');
-        taskText.textContent = task.text;
-        taskText.classList.add("task-text");
+        const taskTitle = document.createElement("span");
+        taskTitle.classList.add("task-title");
+        taskTitle.innerHTML = task.title;
+        taskDescription.appendChild(taskTitle);
+        if (task.text) {
+            taskTitle.innerHTML += ": ";
+            const taskText = document.createElement("span");
+            taskText.innerHTML = task.text;
+            taskText.classList.add("task-text");
+            taskDescription.appendChild(taskText);
+        }
         if (isChecked) {taskDescription.classList.add("checked");}
         if (!isAvailable) {taskDescription.classList.add("unavailable");}
-        taskDescription.appendChild(taskText);
         makeInfoLine(task, taskDescription);
         parentHeaderDiv.appendChild(taskDescription);
 
@@ -554,6 +570,8 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
                 const subtaskItem = createChecklistItem(subtask, subtaskIsChecked, true);
                 subtaskList.appendChild(subtaskItem);
             });
+            subtaskList.appendChild(makeSectionStats(task.id));
+            calcSectionStats(task.id, subtaskList);
         }
         subtaskCollapsible.appendChild(subtaskList)
         taskItem.appendChild(subtaskCollapsible);
@@ -584,9 +602,11 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
 
             event.target.checked = currentlyChecked;
             checklistData.progress[task.id] = currentlyChecked;
-            taskText.classList.toggle('checked', currentlyChecked);
+            taskDescription.classList.toggle('checked', currentlyChecked);
 
             task.subtasks.forEach((subtask) => {
+                if (checklistData.skippedTasks[subtask.id] || checklistData.hiddenTasks[subtask.id]) { return; }
+
                 const subCheckbox = document.getElementById(subtask.id);
 
                 // this is kind of a stupid hack: We can recursively fire events with dispatchEvent, but those events
@@ -595,10 +615,12 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
                 // allow for nested subtasks of arbitrary depth)
                 subCheckbox.dispatchEvent(new CustomEvent("change", {detail: currentlyChecked}));
             });
+
+            calcSectionStats(task.id.split("_")[0]);
             saveData();
         });
 
-    } else {
+    } else { //no subtasks
         const label = document.createElement('label');
         label.htmlFor = task.id;
         label.classList.add("task-description");
@@ -606,7 +628,17 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
         if (!isAvailable) { label.classList.add("unavailable"); }
 
         // Task Text
-        label.innerHTML = `<span class="task-text">${task.text}</span>`;
+        const taskTitle = document.createElement("span");
+        taskTitle.classList.add("task-title");
+        taskTitle.innerHTML = task.title;
+        label.appendChild(taskTitle);
+        if (task.text) {
+            taskTitle.innerHTML += ": ";
+            const taskText = document.createElement("span");
+            taskText.innerHTML = task.text;
+            taskText.classList.add("task-text");
+            label.appendChild(taskText);
+        }
 
         // Reset Timer
         if (task.period) {
@@ -637,25 +669,28 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
             checklistData.progress[task.id] = currentlyChecked;
             label.classList.toggle("checked", currentlyChecked);
 
-            // Update parent task checkboxes
+            // Update parent task checkboxes and stats
             let t = task;
             while (t.parentId) {  // walk up the task tree
-                let parentTaskDefinition = getTaskById(t.parentId)
+                calcSectionStats(t.parentId);
+
+                let parentTaskDefinition = getTaskById(t.parentId);
 
                 if (parentTaskDefinition && parentTaskDefinition.subtasks) {
-                    const allSubtasksChecked = parentTaskDefinition.subtasks.every((st) => checklistData.progress[st.id]);
-                    checklistData.progress[parentTaskDefinition.id] = allSubtasksChecked;
+                    const allSubtasksDone = parentTaskDefinition.subtasks.every((st) => (checklistData.progress[st.id] || checklistData.hiddenTasks[st.id] || checklistData.skippedTasks[st.id]));
+                    checklistData.progress[parentTaskDefinition.id] = allSubtasksDone;
 
                     const parentCheckbox = document.getElementById(parentTaskDefinition.id);
                     const parentContainer = parentCheckbox ? parentCheckbox.closest(".parent-task-container") : null;
                     const parentTextSpan = parentContainer ? parentContainer.querySelector(".parent-task-header .task-description") : null;
 
-                    if (parentCheckbox) {parentCheckbox.checked = allSubtasksChecked;}
-                    if (parentTextSpan) {parentTextSpan.classList.toggle("checked", allSubtasksChecked);}
+                    if (parentCheckbox) { parentCheckbox.checked = allSubtasksDone; }
+                    if (parentTextSpan) { parentTextSpan.classList.toggle("checked", allSubtasksDone); }
                 }
 
                 t = parentTaskDefinition;  // move up a level
             }
+            calcSectionStats(task.id.split("_")[0]);
             saveData();
         });
     }
@@ -664,12 +699,12 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
 }
 
 function taskDialogHeaderSetup(task, dialog) {
-    dialog.querySelector(":scope header .title").innerText = task.text.split(":")[0]; // take the task text up to the first ":" as the dialog title
+    dialog.querySelector(":scope header .task-title").innerHTML = task?.title || "";
 
     let taskIcon = dialog.querySelector(":scope .menu-title img.task-icon");
     taskIcon.className = "task-icon"; // remove possible `icon-filter` from previous opening
     taskIcon.src = "";
-    if (task.icon) {
+    if (task?.icon) {
         taskIcon.src = iconURL(`tasks/${task.icon}`);
         if (!task.noIconFilter) {
             taskIcon.classList.add("icon-filter");
@@ -875,13 +910,152 @@ function populateSection(section) {
         const listItem = createChecklistItem(task, isChecked);
         sectionElement.appendChild(listItem);
     });
+    sectionElement.appendChild(makeSectionStats(section));
+    calcSectionStats(section);
     if (sectionElement.parentElement && sectionElement.parentElement.id) {
         updateSectionControls(sectionElement.parentElement.id);
     }
 }
 
+/**
+ * Update the values of the section stats.
+ *
+ * @param parent - what task list to count stats on. This can be the name of a section, or the id of a task with subtasks.
+ * @param queryFrom - DOM element to find the stats box in. Defaults to `document`. Override this if the element is not inserted into the document yet.
+ */
+function calcSectionStats(parent, queryFrom=document) {
+    let taskList;
+    if (parent.includes("_")) {
+        taskList = getTaskById(parent).subtasks;
+    } else {
+        taskList = tasks[parent];
+    }
+    const statsBox = queryFrom.querySelector(`#stats_${parent} > div`);
+
+    let stats = {
+        completed: 0,
+        skipped: 0,
+        hidden: 0
+    }
+    for (const task of taskList) {
+        if (checklistData.progress[task.id])     { stats.completed++; }
+        if (checklistData.skippedTasks[task.id]) { stats.skipped++; }
+        if (checklistData.hiddenTasks[task.id])  { stats.hidden++; }
+    }
+
+    statsBox.innerHTML = "";
+
+    const statIcons = {
+        completed: "✔",
+        skipped: svgIcons.skipIcon,
+        hidden: svgIcons.hideIcon
+    }
+
+    for (const stat in stats) {
+        const statButton = document.createElement("button");
+        statButton.type = "button";
+        statButton.classList.add(`stats-${stat}`);
+        statButton.dataset.count = stats[stat];
+        statButton.innerHTML = `${statIcons[stat]} +${stats[stat]} ${C.TASKLIST_STAT_NAMES[stat]}`;
+        statButton.addEventListener("click", showHiddenTasksAction(parent, taskList, stat));
+        statsBox.appendChild(statButton);
+    }
+}
+
+function showHiddenTasksAction(parent, taskList, stat) {
+    return () => {
+        // Dialog Title
+        const prefix = hiddenTasksDialog.querySelector(".menu-title > span:first-of-type");
+        const suffix = hiddenTasksDialog.querySelector(".menu-title > span:last-of-type");
+        if (parent.includes("_")) { // subtask list
+            const parentTask = getTaskById(parent);
+            taskDialogHeaderSetup(parentTask, hiddenTasksDialog);
+            prefix.innerText = `${C.TASKLIST_STAT_NAMES[stat]} subtasks of `;
+            suffix.innerText = "";
+        } else { // section list
+            taskDialogHeaderSetup({ title: C.SECTION_NAMES[parent] }, hiddenTasksDialog); // use a fake task to set the task title to the section name
+            prefix.innerText = `${C.TASKLIST_STAT_NAMES[stat]} `;
+            suffix.innerText = " Tasks";
+        }
+
+        // Task List
+        const ul = hiddenTasksDialog.querySelector("ul");
+        ul.classList = stat;
+        ul.innerHTML = "";
+        for (const task of taskList) {
+            if (checklistData[C.TASKLIST_STAT_PROPERTIES[stat]][task.id]) {
+                const li = document.createElement("li");
+                li.classList.add("task-expander");
+
+                const taskItem = document.createElement("div");
+                taskItem.classList.add("task-item");
+
+                let controlButton;
+                if (stat === "completed") {
+                    controlButton = document.createElement("input");
+                    controlButton.type = "checkbox";
+                    controlButton.checked = true;
+                } else {
+                    controlButton = document.createElement("button");
+                    controlButton.type = "button";
+                }
+
+                if (stat === "completed") {
+                    controlButton.title = controlButton.ariaLabel = `Uncheck task: ${task.title}`;
+                } else if (stat === "skipped") {
+                    controlButton.innerHTML = svgIcons.skipIcon;
+                    controlButton.title = controlButton.ariaLabel = `Unskip task: ${task.title}`;
+                } else if (stat === "hidden") {
+                    controlButton.innerHTML = svgIcons.unhideIcon;
+                    controlButton.title = controlButton.ariaLabel = `Unhide task: ${task.title}`;
+                }
+
+                controlButton.addEventListener("click", hiddenTasksButtonAction(taskItem, task, stat));
+                taskItem.appendChild(controlButton);
+
+                const icon = makeTaskIcon(task);
+                if (icon) { taskItem.appendChild(icon); }
+
+                const title = document.createElement("div");
+                title.classList.add("task-title", "task-description");
+                title.innerHTML = task.title;
+                taskItem.appendChild(title);
+
+                li.appendChild(taskItem);
+                ul.appendChild(li);
+            }
+        }
+
+        hiddenTasksDialog.showModal();
+    }
+}
+
+function hiddenTasksButtonAction(taskElement, task, stat) {
+    return () => {
+        const section = task.id.split("_")[0];
+        taskElement.classList.add("hidden-task"); // unhiding the task hides it from the hidden task list
+
+        if (stat === "completed") {
+            document.getElementById(task.id).dispatchEvent(new CustomEvent("change", { detail: false }));
+            populateSection(section);
+        } else {
+            checklistData[C.TASKLIST_STAT_PROPERTIES[stat]][task.id] = false;
+            document.getElementById(task.id).closest(".task-item").classList.remove("hidden-task");
+            if (task.parentId) { calcSectionStats(task.parentId); }
+            calcSectionStats(section);
+        }
+
+        saveData();
+
+        // close dialog if tasklist is empty
+        if (!hiddenTasksDialog.querySelector("li > :not(.hidden-task)")) {
+            hiddenTasksDialog.close();
+        }
+    }
+}
+
 function resetSpecificButtonState(buttonElement, defaultText, stateKey) {
-    if (!buttonElement || !confirmState[stateKey]) { return };
+    if (!buttonElement || !confirmState[stateKey]) { return; }
     clearTimeout(confirmState[stateKey].timeout);
     confirmState[stateKey].timeout = null;
     confirmState[stateKey].isConfirming = false;
@@ -931,16 +1105,9 @@ function handleResetConfirmation(buttonElement, confirmKey, defaultText, resetAc
 
 function resetAllAction() {
     checklistData.progress = {};
-    localStorage.setItem(DATA_STORAGE_KEY, JSON.stringify(checklistData));
-
-    const allCheckboxes = document.querySelectorAll('#checklist-container input[type="checkbox"]');
-    allCheckboxes.forEach((checkbox) => {
-        checkbox.checked = false;
-        const listItem = checkbox.closest('li');
-        const taskDescription = listItem.querySelector(".task-description");
-        if (taskDescription) {taskDescription.classList.remove("checked")};
-    });
-    updateLastSavedDisplay(checklistData.lastSaved);
+    checklistData.skippedTasks = {};
+    saveData();
+    ["daily", "weekly", "other"].forEach(populateSection);
     console.log("Checklist reset complete.");
 }
 
@@ -956,17 +1123,18 @@ function resetSection(section, resetAltRefTasks=false) {
     function resetTask(task) {
         if (task.ref && !resetAltRefTasks) {
             didReset += otherTaskReset(task);
-        } else if (checklistData.progress[task.id] && !checklistData.hiddenTasks[task.id]) {
+        } else if (checklistData.progress[task.id] || checklistData.skippedTasks[task.id]) {
             checklistData.progress[task.id] = false;
+            checklistData.skippedTasks[task.id] = false;
             didReset++;
         }
-        if (task.subtasks) {task.subtasks.forEach(resetTask);}
+        if (task.subtasks) { task.subtasks.forEach(resetTask); }
     }
     tasks[section].forEach(resetTask);
 
     const now = new Date().toISOString();
-    if (section === "daily") {checklistData.lastDailyReset = now;}
-    else if (section === "weekly") {checklistData.lastWeeklyReset = now;}
+    if (section === "daily") { checklistData.lastDailyReset = now; }
+    else if (section === "weekly") { checklistData.lastWeeklyReset = now; }
     saveData();
     if (didReset) {
         populateSection(section);
@@ -998,13 +1166,13 @@ function handleSectionToggle(event) {
 
 function unhideAllAction() {
     checklistData.hiddenTasks = {};
+    checklistData.skippedTasks = {};
     checklistData.manuallyHiddenSections = {};
     saveData(false);
 
-    document.querySelectorAll(".task-item.hidden-task").forEach((item) => item.classList.remove("hidden-task"));
     document.querySelectorAll("section.section-is-hidden-by-user").forEach((section) => section.classList.remove("section-is-hidden-by-user"));
-
     ["daily", "weekly", "other"].forEach(populateSection);
+
     console.log("All tasks and sections unhidden.");
     optionsMenu.close();
 }
@@ -1082,6 +1250,7 @@ function loadData() {
                 checklistData.lastDailyReset = parsedData.lastDailyReset || null;
                 checklistData.lastWeeklyReset = parsedData.lastWeeklyReset || null;
                 checklistData.hiddenTasks = parsedData.hiddenTasks || {};
+                checklistData.skippedTasks = parsedData.skippedTasks || {};
                 checklistData.manuallyHiddenSections = parsedData.manuallyHiddenSections || {};
                 checklistData.lastTaskResetTimes = parsedData.lastTaskResetTimes || {};
                 checklistData.notificationPreferences = parsedData.notificationPreferences || {};
@@ -1091,7 +1260,7 @@ function loadData() {
         } catch (e) {
             console.error("Error parsing saved data:", e);
             displayError("Failed to load saved progress. Data might be corrupted.");
-            checklistData = { progress: {}, lastSaved: null, lastDailyReset: null, lastWeeklyReset: null, hiddenTasks: {}, manuallyHiddenSections: {}, lastTaskResetTimes: {}, notificationPreferences: {}, notificationsSent: {}, hideCompletedTasks: false };
+            checklistData = newChecklistData();
         }
     }
 }
