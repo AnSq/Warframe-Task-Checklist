@@ -37,7 +37,7 @@ const dailyBackgroundImageIds = [
 const APP_VERSION = "5.3";
 const GIT_COMMIT_HASH_LONG = import.meta.env.VITE_GIT_COMMIT_HASH;
 const GIT_COMMIT_HASH = GIT_COMMIT_HASH_LONG.slice(0,7);
-const WARFRAME_VERSION = "43.0.7";
+const WARFRAME_VERSION = "43.0.8";
 const THEME_STORAGE_KEY = 'warframeChecklistTheme';
 
 // only update DATA_STORAGE_KEY when the data storage format changes
@@ -364,7 +364,14 @@ function otherTaskReset(task) {
     const cycleNumber = calcCycleNumber(task, now);
     const lastResetTime = checklistData.lastTaskResetTimes[task.id] || 0;
     const lastResetCycleNumber = calcCycleNumber(task, lastResetTime);
-    if (cycleNumber > lastResetCycleNumber || !calcTaskTimes(task, now).isAvailable) {
+
+    if (checklistData.progress[task.id] && !calcTaskTimes(task, now).isAvailable) {
+        // Uncheck unavailable task
+        checklistData.progress[task.id] = false;
+        didReset = true;
+    }
+
+    if (cycleNumber > lastResetCycleNumber) {
         // Reset task
         if (checklistData.progress[task.id] || checklistData.skippedTasks[task.id]) {
             checklistData.progress[task.id] = false;
@@ -455,6 +462,37 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
     // Task Icon
     const icon = makeTaskIcon(task);
 
+    // Task Description
+    const taskDescription = document.createElement(task.subtasks ? "div" : "label");
+    taskDescription.classList.add("task-description");
+    if (!tasks.subtasks) { taskDescription.htmlFor = task.id; }
+    if (isChecked) { taskDescription.classList.add("checked"); }
+    if (!isAvailable) { taskDescription.classList.add("unavailable"); }
+
+    // Task Text
+    const taskTitle = document.createElement("span");
+    taskTitle.classList.add("task-title");
+    taskTitle.innerHTML = task.title;
+    taskDescription.appendChild(taskTitle);
+    if (task.text) {
+        taskTitle.innerHTML += ": ";
+        const taskText = document.createElement("span");
+        taskText.innerHTML = task.text;
+        taskText.classList.add("task-text");
+        taskDescription.appendChild(taskText);
+    }
+
+    // Reset Timer
+    if (task.period) {
+        const resetTimer = document.createElement("span");
+        resetTimer.classList.add("other-countdown");
+        resetTimer.textContent = "(Loading...)";
+        taskDescription.appendChild(resetTimer);
+    }
+
+    // Info Line & Cycle Schedule
+    makeInfoLine(task, taskDescription);
+
     // Hide/Notif Controls
     const controlsContainer = document.createElement('div');
 
@@ -483,22 +521,19 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
 
     // Skip Button
     const skipButton = document.createElement("button");
-    let when = "this cycle";
-    if (task.id.startsWith("daily_")) { when = "today"; }
-    else if (task.id.startsWith("weekly_")) { when = "this week"; }
     skipButton.classList.add("task-ctrl-btn");
-    skipButton.setAttribute("aria-label", `Skip task ${when}: ${task.title}`);
-    skipButton.title = `Skip task ${when}: ${task.title}`;
+    let skipTooltip;
+    if (isAvailable) {
+        let when = "this cycle";
+        if (task.id.startsWith("daily_")) { when = "today"; }
+        else if (task.id.startsWith("weekly_")) { when = "this week"; }
+        skipTooltip = `Skip task ${when}: ${task.title}`;
+    } else {
+        skipTooltip = `Hide task until it becomes available: ${task.title}`;
+    }
+    skipButton.title = skipButton.ariaLabel = skipTooltip;
     skipButton.innerHTML = svgIcons.skipIcon;
-    skipButton.addEventListener("click", (e) => {
-        e.stopPropagation();
-        checklistData.skippedTasks[task.id] = true;
-        taskItem.classList.add("hidden-task");
-        updateSectionControls(taskItem.closest("section").id);
-        if (task.parentId) { calcSectionStats(task.parentId); }
-        calcSectionStats(task.id.split("_")[0]);
-        saveData(false);
-    });
+    skipButton.addEventListener("click", hideOrSkipTaskAction(task, true));
     controlsContainer.appendChild(skipButton);
 
     // Hide Button
@@ -507,15 +542,7 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
     hideButton.setAttribute("aria-label", `Hide task: ${task.title}`);
     hideButton.title = `Hide task: ${task.title}`;
     hideButton.innerHTML = svgIcons.hideIcon;
-    hideButton.addEventListener("click", (e) => {
-        e.stopPropagation();
-        checklistData.hiddenTasks[task.id] = true;
-        taskItem.classList.add("hidden-task");
-        updateSectionControls(taskItem.closest("section").id);
-        if (task.parentId) { calcSectionStats(task.parentId); }
-        calcSectionStats(task.id.split("_")[0]);
-        saveData(false);
-    });
+    hideButton.addEventListener("click", hideOrSkipTaskAction(task, false));
     controlsContainer.appendChild(hideButton);
 
     if (task.subtasks) {
@@ -528,24 +555,6 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
 
         parentHeaderDiv.appendChild(checkbox);
         if (task.icon) { parentHeaderDiv.appendChild(icon); }
-
-        // Task Text & Info Line
-        const taskDescription = document.createElement("div");
-        taskDescription.classList.add("task-description");
-        const taskTitle = document.createElement("span");
-        taskTitle.classList.add("task-title");
-        taskTitle.innerHTML = task.title;
-        taskDescription.appendChild(taskTitle);
-        if (task.text) {
-            taskTitle.innerHTML += ": ";
-            const taskText = document.createElement("span");
-            taskText.innerHTML = task.text;
-            taskText.classList.add("task-text");
-            taskDescription.appendChild(taskText);
-        }
-        if (isChecked) {taskDescription.classList.add("checked");}
-        if (!isAvailable) {taskDescription.classList.add("unavailable");}
-        makeInfoLine(task, taskDescription);
         parentHeaderDiv.appendChild(taskDescription);
 
         // Collapse Button
@@ -592,18 +601,35 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
         });
 
         // Checkbox Changed -> Change Subtasks Checkboxes
-        checkbox.addEventListener('change', (event) => {
-            let currentlyChecked;
-            if ("detail" in event) {
-                currentlyChecked = event.detail;
-            } else {
-                currentlyChecked = event.target.checked;
-            }
+        checkbox.addEventListener("change", checkboxChangeAction(task));
 
-            event.target.checked = currentlyChecked;
-            checklistData.progress[task.id] = currentlyChecked;
-            taskDescription.classList.toggle('checked', currentlyChecked);
+    } else { //no subtasks
+        taskItem.appendChild(checkbox);
+        if (task.icon) { taskItem.appendChild(icon); }
+        taskItem.appendChild(taskDescription);
+        taskItem.appendChild(controlsContainer);
 
+        // Checkbox Changed
+        checkbox.addEventListener("change", checkboxChangeAction(task));
+    }
+    listItem.appendChild(taskItem);
+    return listItem;
+}
+
+function checkboxChangeAction(task) {
+    return (event) => {
+        let currentlyChecked;
+        if ("detail" in event) {
+            currentlyChecked = event.detail;
+        } else {
+            currentlyChecked = event.target.checked;
+        }
+
+        event.target.checked = currentlyChecked;
+        checklistData.progress[task.id] = currentlyChecked;
+        event.target.parentNode.querySelector(".task-description").classList.toggle("checked", currentlyChecked);
+
+        if (task.subtasks) {
             task.subtasks.forEach((subtask) => {
                 if (checklistData.skippedTasks[subtask.id] || checklistData.hiddenTasks[subtask.id]) { return; }
 
@@ -615,87 +641,52 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
                 // allow for nested subtasks of arbitrary depth)
                 subCheckbox.dispatchEvent(new CustomEvent("change", {detail: currentlyChecked}));
             });
-
-            calcSectionStats(task.id.split("_")[0]);
-            saveData();
-        });
-
-    } else { //no subtasks
-        const label = document.createElement('label');
-        label.htmlFor = task.id;
-        label.classList.add("task-description");
-        if (isChecked) { label.classList.add("checked"); }
-        if (!isAvailable) { label.classList.add("unavailable"); }
-
-        // Task Text
-        const taskTitle = document.createElement("span");
-        taskTitle.classList.add("task-title");
-        taskTitle.innerHTML = task.title;
-        label.appendChild(taskTitle);
-        if (task.text) {
-            taskTitle.innerHTML += ": ";
-            const taskText = document.createElement("span");
-            taskText.innerHTML = task.text;
-            taskText.classList.add("task-text");
-            label.appendChild(taskText);
-        }
-
-        // Reset Timer
-        if (task.period) {
-            const resetTimer = document.createElement("span");
-            resetTimer.classList.add("other-countdown");
-            resetTimer.textContent = "(Loading...)";
-            label.appendChild(resetTimer);
-        }
-
-        // Info Line & Cycle Schedule
-        makeInfoLine(task, label);
-
-        taskItem.appendChild(checkbox);
-        if (task.icon) { taskItem.appendChild(icon); }
-        taskItem.appendChild(label);
-        taskItem.appendChild(controlsContainer);
-
-        // Checkbox Changed
-        checkbox.addEventListener("change", (event) => {
-            let currentlyChecked;
-            if ("detail" in event) {
-                currentlyChecked = event.detail;
-            } else {
-                currentlyChecked = event.target.checked;
-            }
-
-            event.target.checked = currentlyChecked;
-            checklistData.progress[task.id] = currentlyChecked;
-            label.classList.toggle("checked", currentlyChecked);
-
+        } else {
             // Update parent task checkboxes and stats
-            let t = task;
-            while (t.parentId) {  // walk up the task tree
-                calcSectionStats(t.parentId);
+            updateParentCheckboxes(task);
+        }
 
-                let parentTaskDefinition = getTaskById(t.parentId);
-
-                if (parentTaskDefinition && parentTaskDefinition.subtasks) {
-                    const allSubtasksDone = parentTaskDefinition.subtasks.every((st) => (checklistData.progress[st.id] || checklistData.hiddenTasks[st.id] || checklistData.skippedTasks[st.id]));
-                    checklistData.progress[parentTaskDefinition.id] = allSubtasksDone;
-
-                    const parentCheckbox = document.getElementById(parentTaskDefinition.id);
-                    const parentContainer = parentCheckbox ? parentCheckbox.closest(".parent-task-container") : null;
-                    const parentTextSpan = parentContainer ? parentContainer.querySelector(".parent-task-header .task-description") : null;
-
-                    if (parentCheckbox) { parentCheckbox.checked = allSubtasksDone; }
-                    if (parentTextSpan) { parentTextSpan.classList.toggle("checked", allSubtasksDone); }
-                }
-
-                t = parentTaskDefinition;  // move up a level
-            }
-            calcSectionStats(task.id.split("_")[0]);
-            saveData();
-        });
+        calcSectionStats(task.id.split("_")[0]);
+        saveData();
     }
-    listItem.appendChild(taskItem);
-    return listItem;
+}
+
+function hideOrSkipTaskAction(task, skip) {
+    return (event) => {
+        event.stopPropagation();
+        if (skip) { checklistData.skippedTasks[task.id] = true; }
+        else { checklistData.hiddenTasks[task.id] = true; }
+        const taskItem = event.target.closest(".task-item");
+        taskItem.classList.add("hidden-task");
+        updateParentCheckboxes(task);
+        updateSectionControls(taskItem.closest("section").id);
+        saveData(false);
+    }
+}
+
+function updateParentCheckboxes(task) {
+    let t = task;
+    while (t.parentId) {  // walk up the task tree
+        calcSectionStats(t.parentId);
+
+        let parentTaskDefinition = getTaskById(t.parentId);
+
+        if (parentTaskDefinition && parentTaskDefinition.subtasks) {
+            const allSubtasksDone = parentTaskDefinition.subtasks.every((st) => (checklistData.progress[st.id] || checklistData.hiddenTasks[st.id] || checklistData.skippedTasks[st.id]));
+            checklistData.progress[parentTaskDefinition.id] = allSubtasksDone;
+
+            const parentCheckbox = document.getElementById(parentTaskDefinition.id);
+            const parentContainer = parentCheckbox ? parentCheckbox.closest(".parent-task-container") : null;
+            const parentTextSpan = parentContainer ? parentContainer.querySelector(".parent-task-header .task-description") : null;
+
+            if (parentCheckbox) { parentCheckbox.checked = allSubtasksDone; }
+            if (parentTextSpan) { parentTextSpan.classList.toggle("checked", allSubtasksDone); }
+        }
+
+        t = parentTaskDefinition;  // move up a level
+    }
+    calcSectionStats(task.id.split("_")[0]);
+    saveData();
 }
 
 function taskDialogHeaderSetup(task, dialog) {
@@ -1041,6 +1032,7 @@ function hiddenTasksButtonAction(taskElement, task, stat) {
         } else {
             checklistData[C.TASKLIST_STAT_PROPERTIES[stat]][task.id] = false;
             document.getElementById(task.id).closest(".task-item").classList.remove("hidden-task");
+            updateParentCheckboxes(task);
             if (task.parentId) { calcSectionStats(task.parentId); }
             calcSectionStats(section);
         }
