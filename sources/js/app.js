@@ -34,7 +34,7 @@ const dailyBackgroundImageIds = [
     'bg-image-4',
     // Add more IDs if you add more background image divs in HTML
 ];
-const APP_VERSION = "5.3";
+export const APP_VERSION = "5.3";
 const GIT_COMMIT_HASH_LONG = import.meta.env.VITE_GIT_COMMIT_HASH;
 const GIT_COMMIT_HASH = GIT_COMMIT_HASH_LONG.slice(0,7);
 const WARFRAME_VERSION = "43.0.8";
@@ -48,22 +48,6 @@ const DATA_STORAGE_KEY = "warframeChecklistData_format1";
 import tasks from "./tasks.json" with {type: "json"};
 import cycles from "./cycles.json" with {type: "json"};
 import moreInfo from "./moreInfo.js";
-
-function _prepTasks() {
-    function prep(period) {
-        return (task) => {
-            if (task.ref) { // alternate ref tasks need a period for countdown and reset to work correctly
-                task.period = period;
-            }
-            if (task.id in moreInfo) {
-                task.moreInfo = moreInfo[task.id];
-            }
-        }
-    }
-    tasks.daily.forEach(prep("1d"));
-    tasks.weekly.forEach(prep("7d"));
-}
-_prepTasks();
 
 // --- DOM Elements (defined after DOMContentLoaded) ---
 let bodyElement, themeToggleButton, hamburgerButton, optionsMenu, resetDailyButton, resetWeeklyButton, resetButton,
@@ -125,6 +109,63 @@ function initializeDOMElements() {
         }
     });
 }
+
+/**
+ * For each task in the task tree, in the order they are defined, call the given
+ * `callback` function with the task definition object as a parameter.
+ */
+function forEachTask(callback) {
+    let stack = [];
+    for (const section in tasks) {
+        for (let i = 0; i < tasks[section].length; i++) {
+            // top-level tasks are not pushed in reverse order because they're immediately popped
+            stack.push(tasks[section][i]);
+            while (stack.length) {
+                const t = stack.pop();
+                callback(t); // do the thing
+                if (t.subtasks) {
+                    for (let i = t.subtasks.length - 1; i >= 0 ; i--) {
+                        // subtasks are pushed in reverse order so that they're popped in the correct order
+                        stack.push(t.subtasks[i]);
+                    }
+                }
+            }
+        }
+    }
+}
+
+export function getTaskById(id) {
+    let task = undefined;
+    forEachTask((t) => {
+        if (t.id === id) {
+            task = t;
+        }
+    });
+    return task;
+}
+
+function prepTasks() {
+    forEachTask((task) => {
+        task.section = task.id.split("_")[0];
+
+        if (["daily", "weekly"].includes(task.section)) {
+            if (task.ref) { // alternate ref tasks need a period for countdown and reset to work correctly
+                task.period = (task.section === "daily") ? "1d" : "7d";
+            }
+        }
+
+        if (task.id in moreInfo) {
+            task.moreInfo = moreInfo[task.id];
+        }
+
+        if (task.subtasks) {
+            for (const subtask of task.subtasks) {
+                subtask.parentId = task.id;
+            }
+        }
+    });
+}
+prepTasks();
 
 function displayError(message) {
     if (!errorDisplayElement || !errorMessageElement) { return; }
@@ -347,8 +388,7 @@ function runAutoResets() {
 }
 
 function otherTaskReset(task) {
-    const section = task.id.split("_")[0];
-    if (["daily", "weekly"].includes(section) && !task.ref) { // daily and weekly tasks with an alternate ref are handled as "other" tasks
+    if (["daily", "weekly"].includes(task.section) && !task.ref) { // daily and weekly tasks with an alternate ref are handled as "other" tasks
         return false;
     } else if (!task.period) {
         console.error(`[${task.id}] other_* tasks MUST specify a "period"`);
@@ -427,7 +467,8 @@ function showNotification(title, body) {
     }
 }
 
-function createChecklistItem(task, isChecked, isSubtask = false) {
+function createChecklistItem(task) {
+    const isChecked = checklistData.progress[task.id] || false;
     const isAvailable = calcTaskTimes(task, new Date()).isAvailable;
 
     const listItem = document.createElement("li");
@@ -440,14 +481,14 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
     }
 
     // Checkbox
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
     checkbox.id = task.id;
     checkbox.checked = isChecked;
     if (!isAvailable) {
         checkbox.indeterminate = true;
     }
-    if (isSubtask) {
+    if (task.parentId) {
         checkbox.dataset.parentId = task.parentId;
     }
 
@@ -494,7 +535,7 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
     makeInfoLine(task, taskDescription);
 
     // Hide/Notif Controls
-    const controlsContainer = document.createElement('div');
+    const controlsContainer = document.createElement("div");
 
     // Notif Button
     if (task.id.startsWith("other_")) {
@@ -548,56 +589,54 @@ function createChecklistItem(task, isChecked, isSubtask = false) {
     if (task.subtasks) {
         taskItem.classList.add("parent-task-container");
 
-        const parentHeaderDiv = document.createElement('div');
-        parentHeaderDiv.classList.add('parent-task-header');
-        parentHeaderDiv.setAttribute('aria-expanded', 'true');
-        parentHeaderDiv.setAttribute('aria-controls', `${task.id}-subtasks`);
+        const parentHeaderDiv = document.createElement("div");
+        parentHeaderDiv.classList.add("parent-task-header");
+        parentHeaderDiv.ariaExpanded = !(checklistData.collapsedParentTasks[task.id] || false);
+        parentHeaderDiv.setAttribute("aria-controls", `${task.id}-subtasks`);
 
         parentHeaderDiv.appendChild(checkbox);
         if (task.icon) { parentHeaderDiv.appendChild(icon); }
         parentHeaderDiv.appendChild(taskDescription);
 
         // Collapse Button
-        const collapseIcon = document.createElement("div");
-        collapseIcon.setAttribute('class', 'collapse-icon');
-        collapseIcon.innerHTML = svgIcons.collapseIcon;
+        const collapseButton = document.createElement("button");
+        collapseButton.type = "button";
+        collapseButton.classList.add("collapse-btn");
+        collapseButton.innerHTML = svgIcons.collapseIcon;
+        collapseButton.innerHTML += '<div class="incomplete-count"><div>X</div></div>';
 
         parentHeaderDiv.appendChild(controlsContainer);
-        parentHeaderDiv.appendChild(collapseIcon);
+        parentHeaderDiv.appendChild(collapseButton);
         taskItem.appendChild(parentHeaderDiv);
 
         // Subtasks
         const subtaskCollapsible = document.createElement("div");
         subtaskCollapsible.classList.add("subtask-collapsible");
-        const subtaskList = document.createElement('ul');
+        if (checklistData.collapsedParentTasks[task.id]) { subtaskCollapsible.classList.add("collapsed"); }
+        const subtaskList = document.createElement("ul");
         subtaskList.id = `${task.id}-subtasks`;
-        subtaskList.classList.add('subtask-list');
-        if (task.subtasks && Array.isArray(task.subtasks)) {
-            task.subtasks.forEach((subtask) => {
-                subtask.parentId = task.id;
-                const subtaskIsChecked = checklistData.progress[subtask.id] || false;
-                const subtaskItem = createChecklistItem(subtask, subtaskIsChecked, true);
-                subtaskList.appendChild(subtaskItem);
-            });
-            subtaskList.appendChild(makeSectionStats(task.id));
-            calcSectionStats(task.id, subtaskList);
-        }
+        subtaskList.classList.add("subtask-list");
+
+        task.subtasks.forEach((subtask) => {
+            subtaskList.appendChild(createChecklistItem(subtask));
+        });
+        subtaskList.appendChild(makeSectionStats(task.id));
+        calcSectionStats(task.id, subtaskList);
+
         subtaskCollapsible.appendChild(subtaskList)
         taskItem.appendChild(subtaskCollapsible);
 
+        updateIncompleteSubtaskCount(task, taskItem);
+
         // On Click -> Collapse/Expand
-        parentHeaderDiv.addEventListener('click', (e) => {
-            if (e.target !== checkbox && !checkbox.contains(e.target) && !controlsContainer.contains(e.target) && !collapseIcon.contains(e.target) ) {
-                const isExpanded = parentHeaderDiv.getAttribute('aria-expanded') === 'true';
-                parentHeaderDiv.setAttribute('aria-expanded', !isExpanded);
-                subtaskCollapsible.classList.toggle('collapsed', isExpanded);
+        parentHeaderDiv.addEventListener("click", (e) => {
+            if (e.target !== checkbox && !checkbox.contains(e.target) && !controlsContainer.contains(e.target) && !collapseButton.contains(e.target) ) {
+                toggleCollapseSubtasks(task);
             }
         });
-        collapseIcon.addEventListener('click', (e) => {
+        collapseButton.addEventListener("click", (e) => {
             e.stopPropagation();
-            const isExpanded = parentHeaderDiv.getAttribute('aria-expanded') === 'true';
-            parentHeaderDiv.setAttribute('aria-expanded', !isExpanded);
-            subtaskCollapsible.classList.toggle('collapsed', isExpanded);
+            toggleCollapseSubtasks(task);
         });
 
         // Checkbox Changed -> Change Subtasks Checkboxes
@@ -641,12 +680,13 @@ function checkboxChangeAction(task) {
                 // allow for nested subtasks of arbitrary depth)
                 subCheckbox.dispatchEvent(new CustomEvent("change", {detail: currentlyChecked}));
             });
+            updateIncompleteSubtaskCount(task);
         } else {
             // Update parent task checkboxes and stats
             updateParentCheckboxes(task);
         }
 
-        calcSectionStats(task.id.split("_")[0]);
+        calcSectionStats(task.section);
         saveData();
     }
 }
@@ -676,17 +716,37 @@ function updateParentCheckboxes(task) {
             checklistData.progress[parentTaskDefinition.id] = allSubtasksDone;
 
             const parentCheckbox = document.getElementById(parentTaskDefinition.id);
-            const parentContainer = parentCheckbox ? parentCheckbox.closest(".parent-task-container") : null;
-            const parentTextSpan = parentContainer ? parentContainer.querySelector(".parent-task-header .task-description") : null;
+            const parentContainer = parentCheckbox?.closest(".parent-task-container");
+            const parentDescription = parentContainer?.querySelector(".parent-task-header .task-description");
 
             if (parentCheckbox) { parentCheckbox.checked = allSubtasksDone; }
-            if (parentTextSpan) { parentTextSpan.classList.toggle("checked", allSubtasksDone); }
+            if (parentDescription) { parentDescription.classList.toggle("checked", allSubtasksDone); }
         }
 
         t = parentTaskDefinition;  // move up a level
     }
-    calcSectionStats(task.id.split("_")[0]);
+    calcSectionStats(task.section);
     saveData();
+}
+
+function toggleCollapseSubtasks(task) {
+    const parentHeaderDiv = document.getElementById(task.id).closest(".parent-task-header");
+    const startedCollapsed = (parentHeaderDiv.ariaExpanded !== "true"); // whether the section was collapsed before `toggleCollapseSubtasks` was called
+    parentHeaderDiv.ariaExpanded = startedCollapsed; // if it was collapsed before, it should now be expanded
+    parentHeaderDiv.parentNode.querySelector(".subtask-collapsible").classList.toggle("collapsed", !startedCollapsed);
+    checklistData.collapsedParentTasks[task.id] = !startedCollapsed;
+    saveData();
+    updateIncompleteSubtaskCount(task);
+}
+
+function updateIncompleteSubtaskCount(task, queryFrom=document) {
+    if (task.subtasks) {
+        const element = queryFrom.querySelector(`#${task.id} ~ .collapse-btn .incomplete-count > div`);
+        const unchecked = queryFrom.querySelectorAll(`input[data-parent-id="${task.id}"]:not(:checked, :indeterminate, .hidden-task *)`)
+        element.innerText = unchecked.length;
+        element.parentElement.dataset.count = unchecked.length;
+        element.parentElement.title = `${unchecked.length} incomplete subtasks of ${task.title}`;
+    }
 }
 
 function taskDialogHeaderSetup(task, dialog) {
@@ -828,11 +888,11 @@ function makeInfoLine(task, appendTo) {
         // Info Line
         if (hasInfoLine) {
             if (task.npc && task.terminal) {console.warn(`[${task.id}] Tasks should specify only one of [npc, terminal].`);}
-            const infoLine = document.createElement('div');
-            infoLine.classList.add('info-line');
+            const infoLine = document.createElement("div");
+            infoLine.classList.add("info-line");
             let infoLineHTML = "";
             infoLineHTML += makeInfoLineItem(task, "location", "Location", svgIcons.locationIcon);
-            infoLineHTML = infoLineHTML.replace('Base of Operations', C.BASE_OF_OPERATIONS_TOOLTIP);
+            infoLineHTML = infoLineHTML.replace("Base of Operations", C.BASE_OF_OPERATIONS_TOOLTIP);
             infoLineHTML += makeInfoLineItem(task, "npc", "NPC", svgIcons.npcIcon);
             infoLineHTML += makeInfoLineItem(task, "terminal", "Terminal", svgIcons.terminalIcon);
             infoLineHTML += makeInfoLineItem(task, "prereq", "Requirements", svgIcons.prereqIcon);
@@ -858,54 +918,30 @@ function makeInfoLine(task, appendTo) {
     }
 }
 
-function getTaskById(id) {
-    for (const group in tasks) {
-        for (const task of tasks[group]) {
-            if (task.id === id) {
-                return task;
-            }
-            const subtaskFound = _getSubtaskById(task, id);
-            if (subtaskFound) {
-                return subtaskFound;
-            }
-        }
-    }
-}
-
-function _getSubtaskById(task, id) {
-    if ("subtasks" in task) {
-        for (const subtask of task.subtasks) {
-            if (subtask.id === id) {
-                return subtask;
-            }
-            const subtaskFound = _getSubtaskById(subtask, id);
-            if (subtaskFound) {
-                return subtaskFound;
-            }
-        }
-    }
-    return undefined;
-}
-
 function populateSection(section) {
     const sectionElement = document.querySelector(`#${section}-tasks-content ul`);
-    const taskList = tasks[section];
 
     if (!sectionElement) {
         console.error("Section element not found for population:", sectionElement);
         return;
     }
-    sectionElement.innerHTML = '';
-    taskList.forEach((task) => {
-        const isChecked = checklistData.progress[task.id] || false;
-        const listItem = createChecklistItem(task, isChecked);
-        sectionElement.appendChild(listItem);
+    sectionElement.innerHTML = "";
+    tasks[section].forEach((task) => {
+        sectionElement.appendChild(createChecklistItem(task));
     });
     sectionElement.appendChild(makeSectionStats(section));
     calcSectionStats(section);
-    if (sectionElement.parentElement && sectionElement.parentElement.id) {
-        updateSectionControls(sectionElement.parentElement.id);
-    }
+
+    let updatedParents = new Set();
+    forEachTask((task) => {
+        if (task.section === section && task.parentId && !task.subtasks && !updatedParents.has(task.parentId)) {
+            // if the task is a non-root leaf node in the current section, and the first among its siblings
+            updateParentCheckboxes(task);
+            updatedParents.add(task.parentId);
+        }
+    });
+
+    updateSectionControls(sectionElement.parentElement?.id);
 }
 
 /**
@@ -1023,18 +1059,17 @@ function showHiddenTasksAction(parent, taskList, stat) {
 
 function hiddenTasksButtonAction(taskElement, task, stat) {
     return () => {
-        const section = task.id.split("_")[0];
         taskElement.classList.add("hidden-task"); // unhiding the task hides it from the hidden task list
 
         if (stat === "completed") {
             document.getElementById(task.id).dispatchEvent(new CustomEvent("change", { detail: false }));
-            populateSection(section);
+            populateSection(task.section);
         } else {
             checklistData[C.TASKLIST_STAT_PROPERTIES[stat]][task.id] = false;
             document.getElementById(task.id).closest(".task-item").classList.remove("hidden-task");
             updateParentCheckboxes(task);
             if (task.parentId) { calcSectionStats(task.parentId); }
-            calcSectionStats(section);
+            calcSectionStats(task.section);
         }
 
         saveData();
@@ -1236,18 +1271,12 @@ function loadData() {
     if (savedData) {
         try {
             const parsedData = JSON.parse(savedData);
-            if (parsedData && typeof parsedData === 'object') {
-                checklistData.progress = parsedData.progress || {};
-                checklistData.lastSaved = parsedData.lastSaved || null;
-                checklistData.lastDailyReset = parsedData.lastDailyReset || null;
-                checklistData.lastWeeklyReset = parsedData.lastWeeklyReset || null;
-                checklistData.hiddenTasks = parsedData.hiddenTasks || {};
-                checklistData.skippedTasks = parsedData.skippedTasks || {};
-                checklistData.manuallyHiddenSections = parsedData.manuallyHiddenSections || {};
-                checklistData.lastTaskResetTimes = parsedData.lastTaskResetTimes || {};
-                checklistData.notificationPreferences = parsedData.notificationPreferences || {};
-                checklistData.notificationsSent = parsedData.notificationsSent || {};
-                checklistData.hideCompletedTasks = parsedData.hideCompletedTasks || false;
+            if (parsedData && typeof parsedData === "object") {
+                for (const key of Object.keys(checklistData)) {
+                    if (key in parsedData) {
+                        checklistData[key] = parsedData[key];
+                    }
+                }
             } else { console.warn("Invalid data format found in localStorage. Starting fresh."); }
         } catch (e) {
             console.error("Error parsing saved data:", e);
