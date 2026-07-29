@@ -8,6 +8,8 @@
 /.vite/
 /.coverage/
 
+/docs/
+
 .eslintcache
 .stylelintcache
 

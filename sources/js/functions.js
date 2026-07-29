@@ -1,11 +1,17 @@
-// --- sources/js/functions.js ---
-/** Functions that don't manipulate or depend on the DOM or global variables,
+/**
+ * Functions that don't manipulate or depend on the DOM or global variables,
  * and have no side effects (apart from console messages).
  * Functions that generate HTML or DOM elements are allowed here,
  * as long as they don't actually insert them into the document
+ * @module functions
  */
 
 import * as C from "./constants.js";
+
+/**
+ * @typedef {Date|Number|String} DateLike
+ * @description a `Date` object, or something you can feed to `new Date()` to get one.
+ */
 
 export function modulo(n, d) {
     return ((n % d) + d) % d;
@@ -33,7 +39,10 @@ export function iconURL(iconName) {
     return taskIcons["../img/icons/" + iconName];
 }
 
-/** returns a new element of the icon of the given task, or null if it doesn't have one
+/**
+ * Make a new element of the icon of the given task, or null if it doesn't have one
+ * @param {module:app.Task} task
+ * @returns {?HTMLImageElement} `<img>` element with appropriate `src` and `class`, or `null` if the task doesn't have an icon
  */
 export function makeTaskIcon(task) {
     if (task.icon) {
@@ -124,10 +133,13 @@ export function formatCountdown(ms) {
     return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 }
 
-/** Returns the duration in milliseconds of the given "duration string".
+/**
+ * Parse a "duration string".
  * Duration strings look like "14d 5h 20m 15s", for number of days, hours
  * minutes, and seconds. All parts are optional. Spaces are optional.
  * Case insensitive. Integers only.
+ * @param {String} str - duration string
+ * @returns {Number|undefined} number of milliseconds represented by the duration string
  */
 export function parseDuration(str) {
     if (!str || typeof str !== "string") { return undefined; }
@@ -151,7 +163,13 @@ export function parseDuration(str) {
     }, 0);
 }
 
-/** returns whether the given date is in Daylight Saving Time in the named timezone */
+/**
+ * returns whether the given date is in Daylight Saving Time in the named timezone
+ * @param {DateLike} date - date to check
+ * @param {String} timezone - IANA time zone name, like `"America/Toronto"`.
+ * [More info]{@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat/DateTimeFormat#timezone}
+ * @returns {boolean|undefined}
+ */
 export function isDst(date, timezone) {
     if (typeof date === "undefined" || Number.isNaN(date)) { return undefined; }
     if (typeof date === "number" || typeof date === "string") { date = new Date(date); }
@@ -175,10 +193,13 @@ export function isDst(date, timezone) {
 }
 
 /**
- * Calculates the reset count (number of resets since the reference time) of the given task
- * at the given time (a Date object or timestamp).
+ * Calculates the reset count (number of resets since the reference time) of the given task at the given time.
  * Uses the task definition ref by default, if it has one. If you need to use the cycle ref, pass it as `altRef`.
-*/
+ * @param {module:app.Task} task
+ * @param {DateLike} time
+ * @param {DateLike} [altRef] - ref value to use besides task.ref, such as the cycle ref
+ * @returns {Number} number of cycles
+ */
 export function calcResetCount(task, time, altRef = undefined) {
     time = new Date(time);
     const ref = new Date(altRef || task.ref || 0);
@@ -198,7 +219,21 @@ export function makeInfoLineItem(task, prop, iconToolTip, icon) {
     }
 }
 
-/** Calculate the next task time(s) from the given task at the given date */
+/**
+ * @typedef {Object} calcTaskTimesReturn
+ * @description return value of {@link module:functions.calcTaskTimes}
+ * @property {Number} nextResetTimestamp - millisecond timestamp of the next time the task resets
+ * @property {Number} thisCycleLeaveTimestamp - for intermittent tasks, the timestamp when the task becomes unavailable
+ *     during the current cycle. This may be in the past. `NaN` for always-available tasks.
+ * @property {boolean} isAvailable - whether the task is currently available
+ * @static
+ */
+/**
+ * Calculate the next task time(s) from the given task at the given date.
+ * @param {module:app.Task} task
+ * @param {DateLike} date
+ * @returns {module:functions.calcTaskTimesReturn}
+ */
 export function calcTaskTimes(task, date) {
     date = new Date(date);
     const ref = new Date(task.ref || 0);
@@ -227,8 +262,8 @@ export function factionIcon(name) {
 /**
  * Generate a "section stats" element, which shows things like number of hidden tasks in a section or subtask list
  *
- * @param parent - what task list to count stats on. This can be the name of a section, or the id of a task with subtasks.
- * @returns a new DOM Element. Does not insert it into the document.
+ * @param {String} parent - what task list to count stats on. This can be the name of a section, or the id of a task with subtasks.
+ * @returns {HTMLElement} a new DOM Element. Does not insert it into the document.
  */
 export function makeSectionStats(parent) {
     const statsContainer = document.createElement("li");

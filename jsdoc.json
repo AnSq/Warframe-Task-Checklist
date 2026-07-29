@@ -1,0 +1,14 @@
+{
+    "source": {
+        "include": ["sources"]
+    },
+    "opts": {
+        "destination": "docs",
+        "recurse": true,
+        "readme": "README.md",
+        "template": "node_modules/classy-template"
+    },
+    "plugins": [
+        "plugins/markdown"
+    ]
+}

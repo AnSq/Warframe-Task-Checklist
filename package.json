@@ -12,7 +12,9 @@
     "test:ui": "vitest --ui --open=false --coverage",
     "lint": "npm run lint:js && npm run lint:css",
     "lint:js": "eslint --concurrency=auto --cache",
-    "lint:css": "stylelint \"sources/**/*.css\" --cache"
+    "lint:css": "stylelint \"sources/**/*.css\" --cache",
+    "docs": "jsdoc --configure jsdoc.json",
+    "predocs": "node -e \"fs.rmSync('./docs/', { recursive: true, force: true })\""
   },
   "repository": {
     "type": "git",
@@ -42,6 +44,8 @@
     "ajv-formats": "^3.0.1",
     "eslint": "^10.8.0",
     "globals": "^17.8.0",
+    "classy-template": "^1.5.4",
+    "jsdoc": "^4.0.5",
     "jsdom": "^29.1.1",
     "sanitize.css": "^13.0.0",
     "stylelint": "^17.14.1",

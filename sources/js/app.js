@@ -1,4 +1,5 @@
-// --- sources/js/app.js ---
+/** @module app */
+
 console.log(`vite mode: ${import.meta.env.MODE}`);
 
 import {
@@ -45,6 +46,11 @@ const THEME_STORAGE_KEY = "warframeChecklistTheme";
 const DATA_STORAGE_KEY = "warframeChecklistData_format1";
 
 // --- Task Data ---
+/**
+ * @typedef {Object} module:app.Task
+ * @description A task definition object. Tasks are initially loaded from `tasks.json`,
+ * and then augmented by {@link module:app~prepTasks}. See `tests/tasks.schema.json` for a description of task properties
+ */
 import tasks from "./tasks.json" with { type: "json" };
 import cycles from "./cycles.json" with { type: "json" };
 import moreInfo from "./moreInfo.js";
@@ -144,6 +150,7 @@ export function getTaskById(id) {
     return task;
 }
 
+/** */
 function prepTasks() {
     forEachTask((task) => {
         task.section = task.id.split("_")[0];
@@ -965,9 +972,8 @@ function populateSection(section) {
 
 /**
  * Update the values of the section stats.
- *
- * @param parent - what task list to count stats on. This can be the name of a section, or the id of a task with subtasks.
- * @param queryFrom - DOM element to find the stats box in. Defaults to `document`. Override this if the element is not inserted into the document yet.
+ * @param {String} parent - what task list to count stats on. This can be the name of a section, or the id of a task with subtasks.
+ * @param {Element|Document} queryFrom - DOM element to find the stats box in. Defaults to `document`. Override this if the element is not inserted into the document yet.
  */
 function calcSectionStats(parent, queryFrom = document) {
     let taskList;

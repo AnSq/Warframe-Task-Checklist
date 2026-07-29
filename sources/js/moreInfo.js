@@ -1,5 +1,7 @@
-/** Storing this in tasks.json is unwieldy, so it lives here.
+/**
+ * Storing this in tasks.json is unwieldy, so it lives here.
  * If a task's id appears in the exported object, that value gets attached to the task as the `moreInfo` property by `_prepTasks()`.
+ * @module moreInfo
  */
 
 import * as C from "./constants.js";
