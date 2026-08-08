@@ -14,7 +14,7 @@ import {
     getUTCDayOfYear,
     formatCountdown,
     parseDuration,
-    calcCycleNumber,
+    calcResetCount,
     makeInfoLineItem,
     calcTaskTimes,
     makeSectionStats,
@@ -149,9 +149,7 @@ function prepTasks() {
         task.section = task.id.split("_")[0];
 
         if (["daily", "weekly"].includes(task.section)) {
-            if (task.ref) { // alternate ref tasks need a period for countdown and reset to work correctly
-                task.period = (task.section === "daily") ? "1d" : "7d";
-            }
+            task.period = (task.section === "daily") ? "1d" : "7d";
         }
 
         if (task.id in moreInfo) {
@@ -331,7 +329,7 @@ export function displayOtherTaskCountdown(task) {
 
     const now = new Date();
     const taskTimes = calcTaskTimes(task, now);
-    const cycleNumber = calcCycleNumber(task, now);
+    const resetCount = calcResetCount(task, now);
 
     if (task.duration) { // intermittently available task (e.g., Baro)
         const leaveNotifId = `${task.id}/departure`;
@@ -341,9 +339,9 @@ export function displayOtherTaskCountdown(task) {
             resetTimer.innerHTML = `(Available for <span class="tooltip" title="${new Date(taskTimes.thisCycleLeaveTimestamp).toString()}">${formatCountdown(diff)}</span>)`;
 
             // Leaving soon notification (Arrival notification is handled in otherTaskReset, the same as always available tasks)
-            if (diff < C.MILLISECONDS_PER_HOUR && checklistData.notificationPreferences[task.id] && checklistData.notificationsSent[leaveNotifId] !== cycleNumber) {
+            if (diff < C.MILLISECONDS_PER_HOUR && checklistData.notificationPreferences[task.id] && checklistData.notificationsSent[leaveNotifId] !== resetCount) {
                 showNotification(`${task.title} Leaving Soon!`, `Approximately ${Math.round(diff / C.MILLISECONDS_PER_MINUTE)} minutes remaining.`);
-                checklistData.notificationsSent[leaveNotifId] = cycleNumber;
+                checklistData.notificationsSent[leaveNotifId] = resetCount;
                 saveData(false);
             }
         } else { // task not available
@@ -355,7 +353,39 @@ export function displayOtherTaskCountdown(task) {
     }
 }
 
+/**
+ * Time travel (adjusting the system clock) may be used for debugging purposes, which leaves behind some annoying
+ * artifacts in the save data. This cleans them up.
+ */
+function fixTimeTravel() {
+    const now = new Date();
+
+    for (const prop of ["lastSaved", "lastDailyReset", "lastWeeklyReset"]) {
+        if (new Date(checklistData[prop]) > now) {
+            checklistData[prop] = null;
+            console.warn(`fixed time travel of ${prop}`);
+        }
+    }
+
+    for (const taskId in checklistData.lastTaskResetTimes) {
+        if (checklistData.lastTaskResetTimes[taskId] > now.getTime()) {
+            checklistData.lastTaskResetTimes[taskId] = 0;
+            console.warn(`fixed time travel of ${taskId} reset`);
+        }
+    }
+
+    for (const notifId in checklistData.notificationsSent) {
+        const taskId = notifId.split("/")[0];
+        const resetCount = calcResetCount(getTaskById(taskId), now);
+        if (checklistData.notificationsSent[notifId] > resetCount) {
+            delete checklistData.notificationsSent[notifId];
+            console.warn(`fixed time travel of ${notifId} notification`);
+        }
+    }
+}
+
 function runAutoResets() {
+    fixTimeTravel();
     const now = new Date();
     const nowUTCTimestamp = now.getTime();
     const todayUTCString = getUTCDateString(now);
@@ -389,22 +419,16 @@ function runAutoResets() {
 }
 
 function otherTaskReset(task) {
-    if (["daily", "weekly"].includes(task.section) && !task.ref) { // daily and weekly tasks with an alternate ref are handled as "other" tasks
+    if (["daily", "weekly"].includes(task.section) && !task.ref) { // daily and weekly tasks without an alternate ref are not handled as "other" tasks
         return false;
-    } else if (!task.period) {
-        console.error(`[${task.id}] other_* tasks MUST specify a "period"`);
-        return false;
-    }
-    if (!task.ref) {
-        console.warn(`[${task.id}] other_* tasks SHOULD specify a "ref". The default ref of 0 ("1970-01-01T00:00:00Z") will be used otherwise.`);
     }
 
     let didReset = false;
 
     const now = new Date();
-    const cycleNumber = calcCycleNumber(task, now);
+    const resetCount = calcResetCount(task, now);
     const lastResetTime = checklistData.lastTaskResetTimes[task.id] || 0;
-    const lastResetCycleNumber = calcCycleNumber(task, lastResetTime);
+    const lastResetCount = calcResetCount(task, lastResetTime);
 
     if (!calcTaskTimes(task, now).isAvailable && (checklistData.progress[task.id] || !document.getElementById(task.id)?.indeterminate)) {
         // Uncheck unavailable task
@@ -413,7 +437,7 @@ function otherTaskReset(task) {
         didReset = true;
     }
 
-    if (cycleNumber > lastResetCycleNumber) {
+    if (resetCount > lastResetCount) {
         // Reset task
         if (checklistData.progress[task.id] || checklistData.skippedTasks[task.id] || task.duration) {
             checklistData.progress[task.id] = false;
@@ -425,14 +449,14 @@ function otherTaskReset(task) {
 
         // Delete old notification record
         const notifSent = checklistData.notificationsSent[task.id];
-        if (notifSent && notifSent !== cycleNumber) {
+        if (notifSent && notifSent !== resetCount) {
             delete checklistData.notificationsSent[task.id];
         }
 
         // Send and record new notification
-        if (checklistData.notificationPreferences[task.id] && checklistData.notificationsSent[task.id] !== cycleNumber) {
+        if (checklistData.notificationPreferences[task.id] && checklistData.notificationsSent[task.id] !== resetCount) {
             showNotification(`${task.title} has reset!`, "Vendor stock may have updated.");
-            checklistData.notificationsSent[task.id] = cycleNumber;
+            checklistData.notificationsSent[task.id] = resetCount;
             saveData(false);
         }
     }
@@ -526,7 +550,7 @@ function createChecklistItem(task) { /* eslint-disable-line complexity, max-line
     }
 
     // Reset Timer
-    if (task.period) {
+    if (task.ref) {
         const resetTimer = document.createElement("span");
         resetTimer.classList.add("other-countdown");
         resetTimer.textContent = "(Loading...)";
@@ -764,9 +788,7 @@ function taskDialogHeaderSetup(task, dialog) {
     }
 }
 
-function showScheduleAction(task, period, cycleIndex, isAvailable) {
-    const cycleCount = cycles[task.id].columns[0].order.length;
-
+function showScheduleAction(task, cycleIndex, isAvailable) {
     return () => {
         taskDialogHeaderSetup(task, scheduleDialog);
 
@@ -781,6 +803,9 @@ function showScheduleAction(task, period, cycleIndex, isAvailable) {
         }
         header += "</tr>";
         thead.innerHTML += header;
+
+        const cycleCount = cycles[task.id].columns[0].order.length;
+        const period = parseDuration(task.period);
 
         const now = new Date();
         const ref = new Date(cycles[task.id].ref);
@@ -842,24 +867,19 @@ function makeInfoLine(task, appendTo) { /* eslint-disable-line max-lines-per-fun
             const ref = new Date(cycles[task.id].ref);
             const cycleCount = cycles[task.id].columns[0].order.length;
 
-            let prefix, period, cycleIndex;
+            let prefix;
             const isAvailable = calcTaskTimes(task, now).isAvailable;
-            if (task.id.startsWith("weekly_")) {
+            if (task.section === "weekly") {
                 prefix = "This&nbsp;Week";
-                period = 7 * C.MILLISECONDS_PER_DAY;
-                if (ref.getUTCDay() !== 1) {
-                    console.warn(`${task.id} cycle ref ${cycles[task.id].ref} is not a Monday`);
-                }
-            } else if (task.id.startsWith("daily_")) {
+            } else if (task.section === "daily") {
                 prefix = "Today";
-                period = C.MILLISECONDS_PER_DAY;
             } else {
                 prefix = "Current&nbsp;Cycle";
                 if (!isAvailable) { prefix = "Next&nbsp;Cycle"; }
-                period = parseDuration(task.period);
             }
 
-            cycleIndex = modulo(Math.floor((now.getTime() - ref.getTime()) / period), cycleCount);
+            const resetCount = calcResetCount(task, now, ref); // calcResetCount handles DST
+            let cycleIndex = modulo(resetCount, cycleCount);
             if (!isAvailable) { cycleIndex = modulo(cycleIndex + 1, cycleCount); }
             console.log(`${task.id} cycleIndex ${cycleIndex}`);
             const cycleData = cycles[task.id].columns[0].order[cycleIndex];
@@ -878,7 +898,7 @@ function makeInfoLine(task, appendTo) { /* eslint-disable-line max-lines-per-fun
             showSchedule.type = "button";
             showSchedule.classList.add("more-info-btn");
             showSchedule.innerHTML = "Show&nbsp;Schedule";
-            showSchedule.addEventListener("click", showScheduleAction(task, period, cycleIndex, isAvailable));
+            showSchedule.addEventListener("click", showScheduleAction(task, cycleIndex, isAvailable));
             currentCycle.appendChild(showSchedule);
 
             taskInfoExpanderContent.appendChild(currentCycle);
