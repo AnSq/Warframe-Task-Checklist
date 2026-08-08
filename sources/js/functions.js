@@ -171,10 +171,14 @@ export function isDst(date, timezone) {
     return currentOffset === dstOffset;
 }
 
-/** calculates the cycleNumber (number of resets since the reference time) of the given task at the given time (a Date object or timestamp) */
-export function calcCycleNumber(task, time) {
+/**
+ * Calculates the reset count (number of resets since the reference time) of the given task
+ * at the given time (a Date object or timestamp).
+ * Uses the task definition ref by default, if it has one. If you need to use the cycle ref, pass it as `altRef`.
+*/
+export function calcResetCount(task, time, altRef = undefined) {
     time = new Date(time);
-    const ref = new Date(task.ref || 0);
+    const ref = new Date(altRef || task.ref || 0);
     const period = parseDuration(task.period);
     let diff = time.getTime() - ref.getTime();
     if (task.observesDst && isDst(time, C.SERVER_TIMEZONE)) {
@@ -196,8 +200,8 @@ export function calcTaskTimes(task, date) {
     date = new Date(date);
     const ref = new Date(task.ref || 0);
     const period = parseDuration(task.period);
-    const cycleNumber = calcCycleNumber(task, date);
-    const prevResetTimestamp = ref.getTime() + (cycleNumber * period);
+    const resetCount = calcResetCount(task, date);
+    const prevResetTimestamp = ref.getTime() + (resetCount * period);
     let nextResetTimestamp = prevResetTimestamp + period;
     let thisCycleLeaveTimestamp = prevResetTimestamp + parseDuration(task.duration);
 
