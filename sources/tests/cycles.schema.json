@@ -54,7 +54,7 @@
                                             "type": "string"
                                         },
                                         "iconFilter": {
-                                            "description": "set to `true` to convert the `icon` to monochrome black or white depending on the theme. Otherwise, it will be used in color as-is. Note the opposite name and default bahaviour to `tasks.json`",
+                                            "description": "set to `true` to convert the `icon` to monochrome black or white depending on the theme. Otherwise, it will be used in color as-is. Note the opposite name and default behaviour to `tasks.json`",
                                             "type": "boolean",
                                             "default": false
                                         }
