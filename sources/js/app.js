@@ -117,8 +117,12 @@ function initializeDOMElements() {
 }
 
 /**
- * For each task in the task tree, in the order they are defined, call the given
+ * @callback module:app~forEachTask_callback
+ * @param {module:app.Task} task
+ */
+/** For each task in the task tree, in the order they are defined, call the given
  * `callback` function with the task definition object as a parameter.
+ * @param {module:app~forEachTask_callback} callback - function to call with each task
  */
 function forEachTask(callback) {
     const stack = [];
@@ -140,6 +144,10 @@ function forEachTask(callback) {
     }
 }
 
+/** Find the task definition with the given id.
+ * @param {String} id - task ID
+ * @returns {module:app.Task} task definition with the given id
+ */
 export function getTaskById(id) {
     let task = undefined;
     forEachTask((t) => {
@@ -150,7 +158,7 @@ export function getTaskById(id) {
     return task;
 }
 
-/** */
+/** Populate tasks with their calculable properties. */
 function prepTasks() {
     forEachTask((task) => {
         task.section = task.id.split("_")[0];
@@ -263,6 +271,7 @@ function updateLastSavedDisplay(timestamp) {
     }
 }
 
+/** Flash a green "Saved!" message at the bottom of the list. */
 function showSaveStatus() {
     if (!saveStatusElement) { return; }
     clearTimeout(saveStatusTimeout);
@@ -293,11 +302,17 @@ function setDailyBackground() {
     });
 }
 
+/** Update tasks that need resetting and update countdown timers.
+ * Runs once a second.
+ */
 function handleResets() {
     runAutoResets();
     displayLocalResetTimes();
 }
 
+/** Updates all "Resets in..." countdown timers.
+ * Runs once every second.
+ */
 function displayLocalResetTimes() {
     try {
         const now = new Date().getTime();
@@ -330,6 +345,13 @@ function displayLocalResetTimes() {
     }
 }
 
+/** Updates the countdown timer of an "Other" task or a daily or weekly task with an alternate ref.
+ *
+ * Sends a "Leaving Soon" notification if the task is intermittent and will become unavailable within an hour.
+ *
+ * Daily and weekly tasks without an alternate ref are ignored.
+ * @param {module:app.Task} task - task to update counter for
+ */
 export function displayOtherTaskCountdown(task) {
     const resetTimer = document.querySelector(`#${task.id} ~ .task-description .other-countdown`);
     if (!resetTimer) { return; }
@@ -360,9 +382,8 @@ export function displayOtherTaskCountdown(task) {
     }
 }
 
-/**
- * Time travel (adjusting the system clock) may be used for debugging purposes, which leaves behind some annoying
- * artifacts in the save data. This cleans them up.
+/** Time travel (adjusting the system clock) may be used for debugging purposes,
+ * which leaves behind some annoying artifacts in the save data. This cleans them up.
  */
 function fixTimeTravel() {
     const now = new Date();
@@ -391,6 +412,9 @@ function fixTimeTravel() {
     }
 }
 
+/** Resets any tasks that need to be reset based on the current time.
+ * Runs once every second.
+ */
 function runAutoResets() {
     fixTimeTravel();
     const now = new Date();
@@ -425,6 +449,15 @@ function runAutoResets() {
     }
 }
 
+/** Handle reset for an "Other" task or a daily or weekly task with an alternate ref.
+ *
+ * Sends a notification if applicable.
+ * Also unchecks an intermittent task that has become unavailable.
+ *
+ * Daily and weekly tasks without an alternate ref are ignored.
+ * @param {module:app.Task} task - task to check/reset
+ * @returns {boolean} whether the task actually reset or was made unavailable, to let the caller know if it needs to do a repopulate
+ */
 function otherTaskReset(task) {
     if (["daily", "weekly"].includes(task.section) && !task.ref) { // daily and weekly tasks without an alternate ref are not handled as "other" tasks
         return false;
@@ -970,8 +1003,7 @@ function populateSection(section) {
     updateSectionControls(sectionElement.parentElement?.id);
 }
 
-/**
- * Update the values of the section stats.
+/** Update the values of the section stats.
  * @param {String} parent - what task list to count stats on. This can be the name of a section, or the id of a task with subtasks.
  * @param {Element|Document} queryFrom - DOM element to find the stats box in. Defaults to `document`. Override this if the element is not inserted into the document yet.
  */
@@ -1157,6 +1189,7 @@ function handleResetConfirmation(buttonElement, confirmKey, defaultText, resetAc
     }
 }
 
+/** Uncheck and unskip all tasks. */
 function resetAllAction() {
     checklistData.progress = {};
     checklistData.skippedTasks = {};
@@ -1165,6 +1198,10 @@ function resetAllAction() {
     console.log("Checklist reset complete.");
 }
 
+/** Reset Daily or Weekly tasks.
+ * @param {String} section - Section to reset: `"daily"` or `"weekly"`. "Other" tasks are handled by {@link module:app.otherTaskReset}.
+ * @param {boolean} [resetAltRefTasks=false] - if `true`, also reset alternate ref tasks (like Sortie)
+ */
 function resetSection(section, resetAltRefTasks = false) {
     const validSections = ["daily", "weekly"];
     if (!validSections.includes(section)) {
@@ -1196,10 +1233,16 @@ function resetSection(section, resetAltRefTasks = false) {
     console.log(`${section} checks reset.`);
 }
 
+/** Reset all Daily tasks, including alternate ref tasks like Sortie.
+ * Used by the "Reset Daily Checks" button.
+ */
 function resetDailyAction() {
     resetSection("daily", true);
 }
 
+/** Reset all Weekly tasks, including alternate ref tasks.
+ * Used by the "Reset Weekly Checks" button.
+ */
 function resetWeeklyAction() {
     resetSection("weekly", true);
 }
@@ -1218,6 +1261,7 @@ function handleSectionToggle(event) {
     console.log(`Toggled section ${contentId} to ${isExpanded ? "collapsed" : "expanded"}`);
 }
 
+/** Unhide and unskip all tasks. */
 function unhideAllAction() {
     checklistData.hiddenTasks = {};
     checklistData.skippedTasks = {};
@@ -1267,15 +1311,22 @@ function updateSectionControls(sectionElementId) {
     }
 }
 
+/** Stop countdown timers and reset handling.
+ * Mostly only useful for debugging/testing.
+ */
 export function stopCountdown() {
     if (countdownInterval) { clearInterval(countdownInterval); }
 }
 
+/** Start countdown timers and reset handling. */
 export function startCountdown() {
     stopCountdown();
     countdownInterval = setInterval(handleResets, 1000);
 }
 
+/** Save data to localStorage.
+ * @param {boolean} showStatus - whether to flash the green "Saved!" message at the bottom of the list
+ */
 function saveData(showStatus = true) {
     hideError();
     checklistData.lastSaved = new Date().toISOString();
@@ -1293,6 +1344,7 @@ function saveData(showStatus = true) {
     }
 }
 
+/** Load saved data from localStorage */
 function loadData() {
     const savedData = localStorage.getItem(DATA_STORAGE_KEY);
     if (savedData) {
@@ -1313,6 +1365,9 @@ function loadData() {
     }
 }
 
+/** Initialize program state, load data, set up event handlers, etc.
+ * Does NOT start countdown timers and reset handling. Call {@link module:app.startCountdown} for that.
+ */
 export function loadAndInitializeApp() { /* eslint-disable-line max-lines-per-function */
     initializeDOMElements();
     hideError();

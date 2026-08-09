@@ -197,7 +197,7 @@ export function isDst(date, timezone) {
  * Uses the task definition ref by default, if it has one. If you need to use the cycle ref, pass it as `altRef`.
  * @param {module:app.Task} task
  * @param {DateLike} time
- * @param {DateLike} [altRef] - ref value to use besides task.ref, such as the cycle ref
+ * @param {DateLike} [altRef] - ref value to use besides `task.ref`, such as the cycle ref
  * @returns {Number} number of cycles
  */
 export function calcResetCount(task, time, altRef = undefined) {
