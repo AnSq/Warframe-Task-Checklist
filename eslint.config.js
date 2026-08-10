@@ -1,7 +1,6 @@
 import js from "@eslint/js";
 import globals from "globals";
 import json from "@eslint/json";
-import css from "@eslint/css";
 import { defineConfig } from "eslint/config";
 import stylistic from "@stylistic/eslint-plugin";
 
@@ -103,32 +102,5 @@ export default defineConfig([
         plugins: { json },
         language: "json/json",
         extends: ["json/recommended"],
-    },
-    {
-        files: ["sources/**/*.css"],
-        plugins: { css },
-        language: "css/css",
-        extends: ["css/recommended"],
-        languageOptions: {
-            tolerant: true,
-        },
-        rules: {
-            /* allowUnknownVariables suppresses errors from variables defined in other files.
-            Stylelint does proper checking for this kind of error with its `referenceFiles` feature. */
-            "css/no-invalid-properties": ["error", { "allowUnknownVariables": true }],
-            "css/use-baseline": ["warn", {
-                "available": "widely",
-                "allowProperties": [
-                    "backdrop-filter", // baseline 2024
-                ],
-                "allowPropertyValues": {
-                    "background-attachment": ["fixed"], // only unavailable in iOS
-                },
-                "allowAtRules": [
-                    "starting-style", // baseline 2024
-                ],
-            }],
-            "css/no-important": "warn",
-        },
     },
 ]);

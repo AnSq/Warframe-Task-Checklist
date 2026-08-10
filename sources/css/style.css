@@ -420,7 +420,6 @@ body:not(.light-mode) img.icon-filter {
     font-size: 90%;
     color: color-mix(in hsl, var(--text-label) 50%, var(--text-secondary) 50%);
     margin-left: 0.5em;
-    /* eslint-disable-next-line css/use-baseline -- (text-indent: hanging; baseline 2026) only relevant on very narrow screens for only a small effect  */
     text-indent: calc(var(--current-cycle-svg-size) + var(--task-info-expander-svg-mr)) hanging;
 }
 .cycle-icon {
@@ -462,7 +461,7 @@ body:not(.light-mode) img.icon-filter {
         text-decoration: underline var(--menu-panel-border) 1px;
         text-underline-offset: 0.25em;
     }
-    th::before, /* eslint-disable-line css/no-invalid-properties -- eslint bug workaround */
+    th::before,
     th::after {
         content: "\00a0\00a0\00a0\00a0"; /* some no-break spaces added so the underline extends a bit on both sides */
     }
@@ -494,7 +493,7 @@ body:not(.light-mode) img.icon-filter {
 
 /* More Info */
 #more-info {
-    p:not(:last-child, :has(+ :is(ul, table))),  /* eslint-disable-line css/no-invalid-properties -- eslint bug workaround */
+    p:not(:last-child, :has(+ :is(ul, table))),
     table {
         margin-bottom: 1em;
     }
