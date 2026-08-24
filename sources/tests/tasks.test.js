@@ -69,6 +69,28 @@ describe("valildate task definitions", () => {
         });
     });
 
+    describe("check cycle refs", () => {
+        test.for(cycle_keys_for_test)("%s", ([task_id]) => {
+            const section = task_id.split("_")[0];
+            const ref_text = cycles[task_id].ref;
+            const ref = new Date(ref_text);
+
+            const task_def = flatTasks.find((t) => t.id === task_id);
+            if (task_def.ref) { // cycle ref for alternate ref task must match task's alternate ref
+                expect(ref, `cycle ref ${ref_text} does not equal task ref ${task_def.ref}`).toEqual(new Date(task_def.ref));
+            } else if (["daily", "weekly"].includes(section)) { // cycle for standard ref tasks must match standard resets
+                if (section === "weekly") {
+                    expect(ref.getUTCDay(), `cycle ref ${ref_text} is not a Monday`).toEqual(1);
+                }
+
+                expect(
+                    [ref.getUTCHours(), ref.getUTCMinutes(), ref.getUTCSeconds(), ref.getUTCMilliseconds()],
+                    `cycle ref ${ref_text} is not midnight`,
+                ).toEqual([0, 0, 0, 0]);
+            }
+        });
+    });
+
     describe("validate moreInfo", () => {
         test.for(Object.keys(moreInfo).map((i) => [i]))("%s", ([task_id]) => {
             expect(task_ids, "moreInfo keys must be task ids from `tasks.json`").toContain(task_id);
