@@ -37,7 +37,7 @@ const dailyBackgroundImageIds = [
 export const APP_VERSION = "5.3.1";
 const GIT_COMMIT_HASH_LONG = import.meta.env.VITE_GIT_COMMIT_HASH;
 const GIT_COMMIT_HASH = GIT_COMMIT_HASH_LONG.slice(0,7);
-const WARFRAME_VERSION = "43.0.8";
+const WARFRAME_VERSION = "43.5.4";
 const THEME_STORAGE_KEY = 'warframeChecklistTheme';
 
 // only update DATA_STORAGE_KEY when the data storage format changes
