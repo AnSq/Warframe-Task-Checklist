@@ -34,10 +34,10 @@ const dailyBackgroundImageIds = [
     "bg-image-4",
     // Add more IDs if you add more background image divs in HTML
 ];
-export const APP_VERSION = "5.3.1";
+export const APP_VERSION = "5.3.2";
 const GIT_COMMIT_HASH_LONG = import.meta.env.VITE_GIT_COMMIT_HASH;
 const GIT_COMMIT_HASH = GIT_COMMIT_HASH_LONG.slice(0, 7);
-const WARFRAME_VERSION = "43.0.8";
+const WARFRAME_VERSION = "43.5.4";
 const THEME_STORAGE_KEY = "warframeChecklistTheme";
 
 // only update DATA_STORAGE_KEY when the data storage format changes
