@@ -28,10 +28,10 @@ export default {
     <p>Some good missions to use it on include:</p>
     <table>
         <thead><tr>
-            <th>Name</th>
-            <th>Type</th>
-            <th>Base Credits</th>
-            <th>Enemy Level</th>
+            <th><div>Name</div></th>
+            <th><div>Type</div></th>
+            <th><div>Base Credits</div></th>
+            <th><div>Enemy Level</div></th>
         </tr></thead>
         <tbody>
             <tr>

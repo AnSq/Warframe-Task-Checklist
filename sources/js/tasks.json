@@ -132,6 +132,12 @@
             ]
         },
         {
+            "id": "daily_nightwave",
+            "title": "Nightwave",
+            "text": "Complete daily Nightwave acts.",
+            "icon": "NightwaveIconSimple.png"
+        },
+        {
             "id": "daily_sortie",
             "title": "Sortie",
             "text": "Complete the 3 daily Sortie missions.",
@@ -159,7 +165,7 @@
         {
             "id": "daily_kim_parent",
             "title": "KIM",
-            "text": "complete daily chats with protoframes",
+            "text": "complete daily chats with protoframes.",
             "location": "Base of Operations",
             "terminal": "POM-2 PC",
             "icon": "Computer.png",
@@ -315,7 +321,7 @@
         {
             "id": "weekly_nightwave_complete",
             "title": "Nightwave",
-            "text": "Complete relevant weekly Nightwave missions.",
+            "text": "Complete relevant weekly Nightwave acts.",
             "icon": "NightwaveIconSimple.png"
         },
         {
@@ -327,7 +333,7 @@
         {
             "id": "weekly_ayatan",
             "title": "Ayatan Treasure Hunt",
-            "text": "Complete Maroo's weekly mission for an Ayatan Sculpture",
+            "text": "Complete Maroo's weekly mission for an Ayatan Sculpture.",
             "icon": "Maroo.png",
             "location": "Maroo's Bazaar, Mars",
             "npc": "Maroo"
@@ -474,11 +480,11 @@
             "subtasks": [
                 {
                     "id": "weekly_iron_wake",
-                    "title": "Paladino",
+                    "title": "Palladino",
                     "text": "Trade Riven Slivers.",
                     "icon": "IconOmegaMod256.png",
                     "location": "Iron Wake, Earth",
-                    "npc": "Paladino",
+                    "npc": "Palladino",
                     "prereq": "The Chains of Harrow"
                 },
                 {

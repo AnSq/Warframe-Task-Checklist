@@ -53,6 +53,14 @@ describe("valildate task definitions", () => { /* eslint-disable-line max-lines-
         }
     });
 
+    describe("task text should end with a period", () => {
+        test.for(flatTasks)("$id", (t) => {
+            if (t.text) {
+                expect(t.text.slice(-1)).toEqual(".");
+            }
+        });
+    });
+
     const cycle_keys_for_test = Object.keys(cycles).map((i) => [i]);
 
     describe("verify equal `order` lengths", () => {

@@ -299,7 +299,7 @@ function displayLocalResetTimes() {
         const nextDailyResetTimestamp = getNextDailyMidnightUTC();
         const dailyDiff = nextDailyResetTimestamp - now;
         if (dailyResetTimeElement) {
-            dailyResetTimeElement.innerHTML = `(Resets in <span class="tooltip" title="${new Date(nextDailyResetTimestamp).toString()}">${formatCountdown(dailyDiff)}</span>)`;
+            dailyResetTimeElement.innerHTML = `(Resets in <span title="${new Date(nextDailyResetTimestamp).toString()}">${formatCountdown(dailyDiff)}</span>)`;
         }
 
         // Weekly
@@ -309,7 +309,7 @@ function displayLocalResetTimes() {
         }
         const weeklyDiff = nextWeeklyResetTimestamp - now;
         if (weeklyResetTimeElement) {
-            weeklyResetTimeElement.innerHTML = `(Resets in <span class="tooltip" title="${new Date(nextWeeklyResetTimestamp).toString()}">${formatCountdown(weeklyDiff)}</span>)`;
+            weeklyResetTimeElement.innerHTML = `(Resets in <span title="${new Date(nextWeeklyResetTimestamp).toString()}">${formatCountdown(weeklyDiff)}</span>)`;
         }
 
         // Other
@@ -336,7 +336,7 @@ export function displayOtherTaskCountdown(task) {
 
         if (taskTimes.isAvailable) {
             const diff = taskTimes.thisCycleLeaveTimestamp - now.getTime();
-            resetTimer.innerHTML = `(Available for <span class="tooltip" title="${new Date(taskTimes.thisCycleLeaveTimestamp).toString()}">${formatCountdown(diff)}</span>)`;
+            resetTimer.innerHTML = `(Available for <span title="${new Date(taskTimes.thisCycleLeaveTimestamp).toString()}">${formatCountdown(diff)}</span>)`;
 
             // Leaving soon notification (Arrival notification is handled in otherTaskReset, the same as always available tasks)
             if (diff < C.MILLISECONDS_PER_HOUR && checklistData.notificationPreferences[task.id] && checklistData.notificationsSent[leaveNotifId] !== resetCount) {
@@ -345,11 +345,11 @@ export function displayOtherTaskCountdown(task) {
                 saveData(false);
             }
         } else { // task not available
-            resetTimer.innerHTML = `(Available in <span class="tooltip" title="${new Date(taskTimes.nextResetTimestamp).toString()}">${formatCountdown(taskTimes.nextResetTimestamp - now.getTime())}</span>)`;
+            resetTimer.innerHTML = `(Available in <span title="${new Date(taskTimes.nextResetTimestamp).toString()}">${formatCountdown(taskTimes.nextResetTimestamp - now.getTime())}</span>)`;
             if (checklistData.notificationsSent[leaveNotifId]) { delete checklistData.notificationsSent[leaveNotifId]; }
         }
     } else { // always available task
-        resetTimer.innerHTML = `(Resets in <span class="tooltip" title="${new Date(taskTimes.nextResetTimestamp).toString()}">${formatCountdown(taskTimes.nextResetTimestamp - now.getTime())}</span>)`;
+        resetTimer.innerHTML = `(Resets in <span title="${new Date(taskTimes.nextResetTimestamp).toString()}">${formatCountdown(taskTimes.nextResetTimestamp - now.getTime())}</span>)`;
     }
 }
 
@@ -797,9 +797,9 @@ function showScheduleAction(task, cycleIndex, isAvailable) {
         thead.innerHTML = "";
         tbody.innerHTML = "";
 
-        let header = "<tr><th>Date</th>";
+        let header = "<tr><th><div>Date</div></th>";
         for (const column of cycles[task.id].columns) {
-            header += `<th>${column.name}</th>`;
+            header += `<th><div>${column.name}</div></th>`;
         }
         header += "</tr>";
         thead.innerHTML += header;

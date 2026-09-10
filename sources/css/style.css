@@ -27,6 +27,11 @@
     cursor: pointer;
 }
 
+[title] { /* has tooltip */
+    text-decoration: underline dotted;
+    cursor: pointer;
+}
+
 /* --- Content Box Element Styling (Non-Critical Parts) --- */
 #checklist-container h2:hover {
     background-color: var(--section-header-hover-bg);
@@ -324,7 +329,7 @@ input[type="checkbox"]:indeterminate::after {
 /* Dialogs */
 dialog {
     color: var(--text-label);
-    max-width: 52rem;
+    max-width: 56rem;
 }
 dialog::backdrop {
     background-color: var(--backdrop-color);
@@ -420,7 +425,6 @@ body:not(.light-mode) img.icon-filter {
     font-size: 90%;
     color: color-mix(in hsl, var(--text-label) 50%, var(--text-secondary) 50%);
     margin-left: 0.5em;
-    /* eslint-disable-next-line css/use-baseline -- (text-indent: hanging; baseline 2026) only relevant on very narrow screens for only a small effect  */
     text-indent: calc(var(--current-cycle-svg-size) + var(--task-info-expander-svg-mr)) hanging;
 }
 .cycle-icon {
@@ -459,22 +463,25 @@ body:not(.light-mode) img.icon-filter {
     thead {
         font-weight: 700;
         font-size: 1.0625rem;
-        text-decoration: underline var(--menu-panel-border) 1px;
         text-underline-offset: 0.25em;
-    }
-    th::before, /* eslint-disable-line css/no-invalid-properties -- eslint bug workaround */
-    th::after {
-        content: "\00a0\00a0\00a0\00a0"; /* some no-break spaces added so the underline extends a bit on both sides */
     }
     :is(th, td):not(:last-child) {
         padding-right: 1em;
     }
-    td {
-        vertical-align: top;
-    }
     th,
     td {
         text-align: center;
+    }
+    th {
+        vertical-align: bottom;
+    }
+    td {
+        vertical-align: top;
+    }
+    th > div {
+        display: inline-block;
+        padding: 0 1em;
+        border-bottom: 1px solid var(--menu-panel-border);
     }
     td:has(.cycle-icon) {
         text-align: left;
@@ -494,7 +501,7 @@ body:not(.light-mode) img.icon-filter {
 
 /* More Info */
 #more-info {
-    p:not(:last-child, :has(+ :is(ul, table))),  /* eslint-disable-line css/no-invalid-properties -- eslint bug workaround */
+    p:not(:last-child, :has(+ :is(ul, table))),
     table {
         margin-bottom: 1em;
     }
@@ -542,10 +549,6 @@ body:not(.light-mode) img.icon-filter {
 }
 .info-line svg path {
     fill: var(--text-secondary);
-}
-.tooltip {
-    text-decoration: underline dotted;
-    cursor: pointer;
 }
 
 /* Hidden task animation */
