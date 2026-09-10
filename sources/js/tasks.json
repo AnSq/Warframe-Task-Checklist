@@ -165,7 +165,7 @@
         {
             "id": "daily_kim_parent",
             "title": "KIM",
-            "text": "complete daily chats with protoframes",
+            "text": "complete daily chats with protoframes.",
             "location": "Base of Operations",
             "terminal": "POM-2 PC",
             "icon": "Computer.png",
@@ -326,7 +326,7 @@
         {
             "id": "weekly_ayatan",
             "title": "Ayatan Treasure Hunt",
-            "text": "Complete Maroo's weekly mission for an Ayatan Sculpture",
+            "text": "Complete Maroo's weekly mission for an Ayatan Sculpture.",
             "icon": "Maroo.png",
             "location": "Maroo's Bazaar, Mars",
             "npc": "Maroo"
