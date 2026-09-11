@@ -132,6 +132,12 @@
             ]
         },
         {
+            "id": "daily_nightwave",
+            "title": "Nightwave",
+            "text": "Complete daily Nightwave acts.",
+            "icon": "NightwaveIconSimple.png"
+        },
+        {
             "id": "daily_sortie",
             "title": "Sortie",
             "text": "Complete the 3 daily Sortie missions.",
@@ -159,7 +165,7 @@
         {
             "id": "daily_kim_parent",
             "title": "KIM",
-            "text": "complete daily chats with protoframes",
+            "text": "complete daily chats with protoframes.",
             "location": "Base of Operations",
             "terminal": "POM-2 PC",
             "icon": "Computer.png",
@@ -266,6 +272,13 @@
                             "prereq": "\"Liked\" by Marie"
                         }
                     ]
+                },
+                {
+                    "id": "daily_kim_fables",
+                    "title": "Fables &amp; Frontiers",
+                    "prereq": "\"Close\" with Amir",
+                    "icon": "KIM/FablesFrontiers_RetroPfpA.png",
+                    "noIconFilter": true
                 }
             ]
         },
@@ -308,7 +321,7 @@
         {
             "id": "weekly_nightwave_complete",
             "title": "Nightwave",
-            "text": "Complete relevant weekly Nightwave missions.",
+            "text": "Complete relevant weekly Nightwave acts.",
             "icon": "NightwaveIconSimple.png"
         },
         {
@@ -320,7 +333,7 @@
         {
             "id": "weekly_ayatan",
             "title": "Ayatan Treasure Hunt",
-            "text": "Complete Maroo's weekly mission for an Ayatan Sculpture",
+            "text": "Complete Maroo's weekly mission for an Ayatan Sculpture.",
             "icon": "Maroo.png",
             "location": "Maroo's Bazaar, Mars",
             "npc": "Maroo"
@@ -443,6 +456,15 @@
             "terminal": "Navigation"
         },
         {
+            "id": "weekly_oops_all_eximus",
+            "title": "Oops! All Eximus!",
+            "text": "Exterminate Surge Eximus units for a Surge Eximus Specter Blueprint.",
+            "icon": "AmirFAndFQuickAccess.png",
+            "location": "Höllvania Central Mall",
+            "npc": "Amir (Höllvandeim)",
+            "prereq": "Complete all 6 days of the Fables &amp; Frontiers KIM story"
+        },
+        {
             "id": "weekly_clan_initiative",
             "title": "Clan Weekly Initiatives",
             "text": "Earn rewards by playing with clan members.",
@@ -458,11 +480,11 @@
             "subtasks": [
                 {
                     "id": "weekly_iron_wake",
-                    "title": "Paladino",
+                    "title": "Palladino",
                     "text": "Trade Riven Slivers.",
                     "icon": "IconOmegaMod256.png",
                     "location": "Iron Wake, Earth",
-                    "npc": "Paladino",
+                    "npc": "Palladino",
                     "prereq": "The Chains of Harrow"
                 },
                 {
@@ -532,7 +554,7 @@
                     "id": "weekly_hunhow",
                     "title": "Hunhow",
                     "text": "Trade Emerald &amp; Crimson Talents for Kuva.",
-                    "icon": "MarkedForDeathStalker.png",
+                    "icon": "Hunhow.png",
                     "location": "Pontis Tower, Uranus",
                     "npc": "Hunhow",
                     "prereq": "Jade Shadows: Constellations"
