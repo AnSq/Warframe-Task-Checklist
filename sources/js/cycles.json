@@ -14,6 +14,30 @@
                 ]
             },
             {
+                "name": "<span title=\"Base value when sold to Maroo\">Endo</span>",
+                "align": "center",
+                "order": [
+                    { "text": "300", "icon": "EndoIconRenderLarge.png" },
+                    { "text": "325", "icon": "EndoIconRenderLarge.png" },
+                    { "text": "650", "icon": "EndoIconRenderLarge.png" },
+                    { "text": "400", "icon": "EndoIconRenderLarge.png" },
+                    { "text": "375", "icon": "EndoIconRenderLarge.png" },
+                    { "text": "325", "icon": "EndoIconRenderLarge.png" }
+                ]
+            },
+            {
+                "name": "<span title=\"Value with maximum Ayatan Stars\">Socketed</span>",
+                "align": "center",
+                "order": [
+                    { "text": "1500", "icon": "EndoIconRenderLarge.png" },
+                    { "text": "1425", "icon": "EndoIconRenderLarge.png" },
+                    { "text": "2700", "icon": "EndoIconRenderLarge.png" },
+                    { "text": "1800", "icon": "EndoIconRenderLarge.png" },
+                    { "text": "1725", "icon": "EndoIconRenderLarge.png" },
+                    { "text": "1575", "icon": "EndoIconRenderLarge.png" }
+                ]
+            },
+            {
                 "name": "Tileset",
                 "order": [
                     { "text": "Orokin Derelict (Deimos)", "icon": "FactionInfested.png" },

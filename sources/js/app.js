@@ -797,9 +797,9 @@ function showScheduleAction(task, cycleIndex, isAvailable) {
         thead.innerHTML = "";
         tbody.innerHTML = "";
 
-        let header = "<tr><th>Date</th>";
+        let header = "<tr><th><div>Date</div></th>";
         for (const column of cycles[task.id].columns) {
-            header += `<th>${column.name}</th>`;
+            header += `<th><div>${column.name}</div></th>`;
         }
         header += "</tr>";
         thead.innerHTML += header;
